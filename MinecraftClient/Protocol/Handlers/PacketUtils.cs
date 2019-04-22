@@ -33,6 +33,7 @@ namespace MinecraftClient.Protocol.Handlers
         public const int MC113pre4Version = 386;
         public const int MC113pre7Version = 389;
         public const int MC113Version = 393;
+        public const int MC114pre5Version = 476;
 
         /// <summary>
         /// Read some data from a cache of bytes and remove it from the cache

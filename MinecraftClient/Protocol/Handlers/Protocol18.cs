@@ -9,13 +9,21 @@ using MinecraftClient.Proxy;
 using System.Security.Cryptography;
 using MinecraftClient.Protocol.Handlers.Forge;
 using MinecraftClient.Mapping;
+using MinecraftClient.Protocol.Packets;
+using MinecraftClient.Protocol.Packets.Inbound;
+using MinecraftClient.Protocol.Packets.Inbound.ChunkData;
+using MinecraftClient.Protocol.Packets.Inbound.JoinGame;
+using MinecraftClient.Protocol.Packets.Outbound;
+using MinecraftClient.Protocol.Packets.Outbound.ChatMessage;
+using MinecraftClient.Protocol.Packets.Outbound.ClientSettings;
+using MinecraftClient.Protocol.Packets.Outbound.PluginMessage;
 
 namespace MinecraftClient.Protocol.Handlers
 {
     /// <summary>
     /// Implementation for Minecraft 1.7.X+ Protocols
     /// </summary>
-    class Protocol18Handler : IMinecraftCom
+    class Protocol18Handler : IMinecraftCom, IProtocol
     {
         private int compression_treshold = 0;
         private bool autocomplete_received = false;
@@ -36,14 +44,41 @@ namespace MinecraftClient.Protocol.Handlers
 
         int currentDimension;
 
-        public Protocol18Handler(TcpClient Client, int ProtocolVersion, IMinecraftComHandler Handler, ForgeInfo ForgeInfo)
+        private Dictionary<int, IInboundGamePacketHandler> _inboundHandlers;
+        private Dictionary<OutboundTypes, IOutboundGamePacket> _outboundPackets;
+
+        public Protocol18Handler(TcpClient Client, int ProtocolVersion, IMinecraftComHandler Handler,
+            ForgeInfo ForgeInfo)
         {
             ConsoleIO.SetAutoCompleteEngine(this);
             ChatParser.InitTranslations();
-            this.c = Client;
-            this.protocolversion = ProtocolVersion;
-            this.handler = Handler;
-            this.forgeInfo = ForgeInfo;
+            c = Client;
+            protocolversion = ProtocolVersion;
+            handler = Handler;
+            forgeInfo = ForgeInfo;
+            initHandlers();
+        }
+
+        private void initHandlers()
+        {
+            _inboundHandlers = PacketFactory.InboundHandlers(protocolversion);
+            ConsoleIO.WriteLine("Loaded inbound handlers:");
+            foreach (var inboundGamePacketHandler in _inboundHandlers)
+            {
+                ConsoleIO.WriteLineFormatted($"Type: {inboundGamePacketHandler.Value.Type()} " +
+                                             $"Implementation: {inboundGamePacketHandler.Value.GetType().Name} " +
+                                             $"Packet: 0x{inboundGamePacketHandler.Key:X2}");
+            }
+
+            _outboundPackets = PacketFactory.OutboundHandlers(protocolversion);
+
+            ConsoleIO.WriteLine("Loaded outbound packets:");
+            foreach (var outboundPacket in _outboundPackets)
+            {
+                ConsoleIO.WriteLineFormatted($"Type: {outboundPacket.Value.Type()} " +
+                                             $"Implementation: {outboundPacket.Value.GetType().Name} " +
+                                             $"Packet: 0x{outboundPacket.Value.PacketId():X2}");
+            }
         }
 
         private Protocol18Handler(TcpClient Client)
@@ -61,12 +96,17 @@ namespace MinecraftClient.Protocol.Handlers
                 do
                 {
                     Thread.Sleep(100);
-                }
-                while (Update());
+                } while (Update());
             }
-            catch (System.IO.IOException) { }
-            catch (SocketException) { }
-            catch (ObjectDisposedException) { }
+            catch (System.IO.IOException)
+            {
+            }
+            catch (SocketException)
+            {
+            }
+            catch (ObjectDisposedException)
+            {
+            }
 
             handler.OnConnectionLost(ChatBot.DisconnectReason.ConnectionLost, "");
         }
@@ -78,7 +118,11 @@ namespace MinecraftClient.Protocol.Handlers
         private bool Update()
         {
             handler.OnUpdate();
-            if (c.Client == null || !c.Connected) { return false; }
+            if (c.Client == null || !c.Connected)
+            {
+                return false;
+            }
+
             try
             {
                 while (c.Client.Available > 0)
@@ -86,11 +130,29 @@ namespace MinecraftClient.Protocol.Handlers
                     int packetID = 0;
                     List<byte> packetData = new List<byte>();
                     readNextPacket(ref packetID, packetData);
-                    handlePacket(packetID, new List<byte>(packetData));
+
+                    try
+                    {
+                        handleIncomingPacket(packetID, new List<byte>(packetData));
+                    }
+                    catch (Exception e)
+                    {
+                        ConsoleIO.WriteLineFormatted(
+                            $"Failed to process packet 0x{packetID:X2}: {e.Message}");
+                        ConsoleIO.WriteLine(e.ToString());
+                        throw;
+                    }
                 }
             }
-            catch (SocketException) { return false; }
-            catch (NullReferenceException) { return false; }
+            catch (SocketException)
+            {
+                return false;
+            }
+            catch (NullReferenceException)
+            {
+                return false;
+            }
+
             return true;
         }
 
@@ -122,136 +184,170 @@ namespace MinecraftClient.Protocol.Handlers
             packetID = PacketUtils.readNextVarInt(packetData); //Packet ID
         }
 
-        /// <summary>
-        /// Abstract incoming packet numbering
-        /// </summary>
-        private enum PacketIncomingType
+//        /// <summary>
+//        /// Abstract incoming packet numbering
+//        /// </summary>
+//        private enum PacketIncomingType
+//        {
+//            KeepAlive,
+//            JoinGame,
+//            ChatMessage,
+//            Respawn,
+//            PlayerPositionAndLook,
+//            ChunkData,
+//            MultiBlockChange,
+//            BlockChange,
+//            MapChunkBulk,
+//            UnloadChunk,
+//            PlayerListUpdate,
+//            TabCompleteResult,
+//            PluginMessage,
+//            KickPacket,
+//            NetworkCompressionTreshold,
+//            ResourcePackSend,
+//            UnknownPacket
+//        }
+
+//        /// <summary>
+//        /// Get abstract numbering of the specified packet ID
+//        /// </summary>
+//        /// <param name="packetID">Packet ID</param>
+//        /// <param name="protocol">Protocol version</param>
+//        /// <returns>Abstract numbering</returns>
+//        private PacketIncomingType getPacketIncomingType(int packetID, int protocol)
+//        {
+//            // temporary workaround
+//            if (packetID == ClientKeepAlive.getPacketID(protocol))
+//                return PacketIncomingType.KeepAlive;
+//            else if (packetID == ClientJoinGame.getPacketID(protocol))
+//                return PacketIncomingType.JoinGame;
+//            else if (packetID == ClientChatMessage.getPacketID(protocol))
+//                return PacketIncomingType.ChatMessage;
+//            else if (packetID == ClientRespawn.getPacketID(protocol))
+//                return PacketIncomingType.Respawn;
+//            else if (packetID == ClientPlayerPositionAndLook.getPacketID(protocol))
+//                return PacketIncomingType.PlayerPositionAndLook;
+//            else if (packetID == ClientChunkData.getPacketID(protocol))
+//                return PacketIncomingType.ChunkData;
+//            else if (packetID == ClientMultiBlockChange.getPacketID(protocol))
+//                return PacketIncomingType.MultiBlockChange;
+//            else if (packetID == ClientBlockChange.getPacketID(protocol))
+//                return PacketIncomingType.BlockChange;
+//            else if (packetID == ClientMapChunkBulk.getPacketID(protocol))
+//                return PacketIncomingType.MapChunkBulk;
+//            else if (packetID == ClientUnloadChunk.getPacketID(protocol))
+//                return PacketIncomingType.UnloadChunk;
+//            else if (packetID == ClientPlayerListUpdate.getPacketID(protocol))
+//                return PacketIncomingType.PlayerListUpdate;
+//            else if (packetID == ClientTabCompleteResult.getPacketID(protocol))
+//                return PacketIncomingType.TabCompleteResult;
+//            else if (packetID == ClientPluginMessage.getPacketID(protocol))
+//                return PacketIncomingType.PluginMessage;
+//            else if (packetID == ClientKickPacket.getPacketID(protocol))
+//                return PacketIncomingType.KickPacket;
+//            else if (packetID == ClientNetworkCompressionTreshold.getPacketID(protocol))
+//                return PacketIncomingType.NetworkCompressionTreshold;
+//            else if (packetID == ClientResourcePackSend.getPacketID(protocol))
+//                return PacketIncomingType.ResourcePackSend;
+//            else
+//                return PacketIncomingType.UnknownPacket;
+//        }
+//
+//        /// <summary>
+//        /// Abstract outgoing packet numbering
+//        /// </summary>
+//        private enum PacketOutgoingType
+//        {
+//            KeepAlive,
+//            ResourcePackStatus,
+//            ChatMessage,
+//            ClientStatus,
+//            ClientSettings,
+//            PluginMessage,
+//            TabComplete,
+//            PlayerPosition,
+//            PlayerPositionAndLook,
+//            TeleportConfirm
+//        }
+//
+//        /// <summary>
+//        /// Get packet ID of the specified outgoing packet
+//        /// </summary>
+//        /// <param name="packet">Abstract packet numbering</param>
+//        /// <param name="protocol">Protocol version</param>
+//        /// <returns>Packet ID</returns>
+//        private int getPacketOutgoingID(PacketOutgoingType packet, int protocol)
+//        {
+//            // temporary workaround
+//            if (packet == PacketOutgoingType.KeepAlive)
+//                return ServerKeepAlive.getPacketID(protocol);
+//            else if (packet == PacketOutgoingType.ResourcePackStatus)
+//                return ServerResourcePackStatus.getPacketID(protocol);
+//            else if (packet == PacketOutgoingType.ChatMessage)
+//                return ServerChatMessage.getPacketID(protocol);
+//            else if (packet == PacketOutgoingType.ClientStatus)
+//                return ServerClientStatus.getPacketID(protocol);
+//            else if (packet == PacketOutgoingType.ClientSettings)
+//                return ServerClientSettings.getPacketID(protocol);
+//            else if (packet == PacketOutgoingType.PluginMessage)
+//                return ServerPluginMessage.getPacketID(protocol);
+//            else if (packet == PacketOutgoingType.TabComplete)
+//                return ServerTabComplete.getPacketID(protocol);
+//            else if (packet == PacketOutgoingType.PlayerPosition)
+//                return ServerPlayerPosition.getPacketID(protocol);
+//            else if (packet == PacketOutgoingType.PlayerPositionAndLook)
+//                return ServerPlayerPositionAndLook.getPacketID(protocol);
+//            else if (packet == PacketOutgoingType.TeleportConfirm)
+//                return ServerTeleportConfirm.getPacketID(protocol);
+//
+//            throw new System.ComponentModel.InvalidEnumArgumentException(
+//                "Unknown PacketOutgoingType (protocol=" + protocol + ")", (int) packet, typeof(PacketOutgoingType));
+//        }
+
+        public int Dimension()
         {
-            KeepAlive,
-            JoinGame,
-            ChatMessage,
-            Respawn,
-            PlayerPositionAndLook,
-            ChunkData,
-            MultiBlockChange,
-            BlockChange,
-            MapChunkBulk,
-            UnloadChunk,
-            PlayerListUpdate,
-            TabCompleteResult,
-            PluginMessage,
-            KickPacket,
-            NetworkCompressionTreshold,
-            ResourcePackSend,
-            UnknownPacket
+            return currentDimension;
         }
 
-        /// <summary>
-        /// Get abstract numbering of the specified packet ID
-        /// </summary>
-        /// <param name="packetID">Packet ID</param>
-        /// <param name="protocol">Protocol version</param>
-        /// <returns>Abstract numbering</returns>
-        private PacketIncomingType getPacketIncomingType(int packetID, int protocol)
+        public bool SendPacketOut(OutboundTypes type, IEnumerable<byte> packetData, IOutboundRequest data)
         {
-            // temporary workaround
-            if (packetID == ClientKeepAlive.getPacketID(protocol))
-                return PacketIncomingType.KeepAlive;
-            else if (packetID == ClientJoinGame.getPacketID(protocol))
-                return PacketIncomingType.JoinGame;
-            else if (packetID == ClientChatMessage.getPacketID(protocol))
-                return PacketIncomingType.ChatMessage;
-            else if (packetID == ClientRespawn.getPacketID(protocol))
-                return PacketIncomingType.Respawn;
-            else if (packetID == ClientPlayerPositionAndLook.getPacketID(protocol))
-                return PacketIncomingType.PlayerPositionAndLook;
-            else if (packetID == ClientChunkData.getPacketID(protocol))
-                return PacketIncomingType.ChunkData;
-            else if (packetID == ClientMultiBlockChange.getPacketID(protocol))
-                return PacketIncomingType.MultiBlockChange;
-            else if (packetID == ClientBlockChange.getPacketID(protocol))
-                return PacketIncomingType.BlockChange;
-            else if (packetID == ClientMapChunkBulk.getPacketID(protocol))
-                return PacketIncomingType.MapChunkBulk;
-            else if (packetID == ClientUnloadChunk.getPacketID(protocol))
-                return PacketIncomingType.UnloadChunk;
-            else if (packetID == ClientPlayerListUpdate.getPacketID(protocol))
-                return PacketIncomingType.PlayerListUpdate;
-            else if (packetID == ClientTabCompleteResult.getPacketID(protocol))
-                return PacketIncomingType.TabCompleteResult;
-            else if (packetID == ClientPluginMessage.getPacketID(protocol))
-                return PacketIncomingType.PluginMessage;
-            else if (packetID == ClientKickPacket.getPacketID(protocol))
-                return PacketIncomingType.KickPacket;
-            else if (packetID == ClientNetworkCompressionTreshold.getPacketID(protocol))
-                return PacketIncomingType.NetworkCompressionTreshold;
-            else if (packetID == ClientResourcePackSend.getPacketID(protocol))
-                return PacketIncomingType.ResourcePackSend;
-            else
-                return PacketIncomingType.UnknownPacket;
-        }
+            if (!_outboundPackets.TryGetValue(type, out var packet))
+            {
+                throw new NotSupportedException();
+            }
 
-        /// <summary>
-        /// Abstract outgoing packet numbering
-        /// </summary>
-        private enum PacketOutgoingType
-        {
-            KeepAlive,
-            ResourcePackStatus,
-            ChatMessage,
-            ClientStatus,
-            ClientSettings,
-            PluginMessage,
-            TabComplete,
-            PlayerPosition,
-            PlayerPositionAndLook,
-            TeleportConfirm
-        }
+            if (null == packetData)
+            {
+                packetData = new byte[] {0};
+            }
 
-        /// <summary>
-        /// Get packet ID of the specified outgoing packet
-        /// </summary>
-        /// <param name="packet">Abstract packet numbering</param>
-        /// <param name="protocol">Protocol version</param>
-        /// <returns>Packet ID</returns>
-        private int getPacketOutgoingID(PacketOutgoingType packet, int protocol)
-        {
-            // temporary workaround
-            if (packet == PacketOutgoingType.KeepAlive)
-                return ServerKeepAlive.getPacketID(protocol);
-            else if (packet == PacketOutgoingType.ResourcePackStatus)
-                return ServerResourcePackStatus.getPacketID(protocol);
-            else if (packet == PacketOutgoingType.ChatMessage)
-                return ServerChatMessage.getPacketID(protocol);
-            else if (packet == PacketOutgoingType.ClientStatus)
-                return ServerClientStatus.getPacketID(protocol);
-            else if (packet == PacketOutgoingType.ClientSettings)
-                return ServerClientSettings.getPacketID(protocol);
-            else if (packet == PacketOutgoingType.PluginMessage)
-                return ServerPluginMessage.getPacketID(protocol);
-            else if (packet == PacketOutgoingType.TabComplete)
-                return ServerTabComplete.getPacketID(protocol);
-            else if (packet == PacketOutgoingType.PlayerPosition)
-                return ServerPlayerPosition.getPacketID(protocol);
-            else if (packet == PacketOutgoingType.PlayerPositionAndLook)
-                return ServerPlayerPositionAndLook.getPacketID(protocol);
-            else if (packet == PacketOutgoingType.TeleportConfirm)
-                return ServerTeleportConfirm.getPacketID(protocol);
+            try
+            {
+                SendPacket(packet.PacketId(), packet.TransformData(packetData, data));
+            }
+            catch (SocketException)
+            {
+                return false;
+            }
+            catch (System.IO.IOException)
+            {
+                return false;
+            }
 
-            throw new System.ComponentModel.InvalidEnumArgumentException("Unknown PacketOutgoingType (protocol=" + protocol + ")", (int)packet, typeof(PacketOutgoingType));
+            return true;
         }
 
         /// <summary>
         /// Handle the given packet
         /// </summary>
-        /// <param name="packetID">Packet ID</param>
+        /// <param name="packetId">Packet ID</param>
         /// <param name="packetData">Packet contents</param>
         /// <returns>TRUE if the packet was processed, FALSE if ignored or unknown</returns>
-        private bool handlePacket(int packetID, List<byte> packetData)
+        private bool handleIncomingPacket(int packetId, List<byte> packetData)
         {
             if (login_phase)
             {
-                switch (packetID) //Packet IDs are different while logging in
+                switch (packetId) //Packet IDs are different while logging in
                 {
                     case 0x03:
                         if (protocolversion >= PacketUtils.MC18Version)
@@ -260,448 +356,529 @@ namespace MinecraftClient.Protocol.Handlers
                     default:
                         return false; //Ignored packet
                 }
+
+                return true;
             }
-            // Regular in-game packets
-            switch (getPacketIncomingType(packetID, protocolversion))
+
+            if (!_inboundHandlers.TryGetValue(packetId, out var pHandler))
             {
-                case PacketIncomingType.KeepAlive:
-                    SendPacket(PacketOutgoingType.KeepAlive, packetData);
-                    break;
-                case PacketIncomingType.JoinGame:
-                    handler.OnGameJoined();
-                    PacketUtils.readNextInt(packetData);
-                    PacketUtils.readNextByte(packetData);
-                    if (protocolversion >= PacketUtils.MC191Version)
-                        this.currentDimension = PacketUtils.readNextInt(packetData);
-                    else
-                        this.currentDimension = (sbyte)PacketUtils.readNextByte(packetData);
-                    PacketUtils.readNextByte(packetData);
-                    PacketUtils.readNextByte(packetData);
-                    PacketUtils.readNextString(packetData);
-                    if (protocolversion >= PacketUtils.MC18Version)
-                        PacketUtils.readNextBool(packetData);  // Reduced debug info - 1.8 and above
-                    break;
-                case PacketIncomingType.ChatMessage:
-                    string message = PacketUtils.readNextString(packetData);
-                    try
-                    {
-                        //Hide system messages or xp bar messages?
-                        byte messageType = PacketUtils.readNextByte(packetData);
-                        if ((messageType == 1 && !Settings.DisplaySystemMessages)
-                            || (messageType == 2 && !Settings.DisplayXPBarMessages))
-                            break;
-                    }
-                    catch (ArgumentOutOfRangeException) { /* No message type */ }
-                    handler.OnTextReceived(message, true);
-                    break;
-                case PacketIncomingType.Respawn:
-                    this.currentDimension = PacketUtils.readNextInt(packetData);
-                    PacketUtils.readNextByte(packetData);
-                    PacketUtils.readNextByte(packetData);
-                    PacketUtils.readNextString(packetData);
-                    break;
-                case PacketIncomingType.PlayerPositionAndLook:
-                    if (Settings.TerrainAndMovements)
-                    {
-                        double x = PacketUtils.readNextDouble(packetData);
-                        double y = PacketUtils.readNextDouble(packetData);
-                        double z = PacketUtils.readNextDouble(packetData);
-                        float yaw = PacketUtils.readNextFloat(packetData);
-                        float pitch = PacketUtils.readNextFloat(packetData);
-                        byte locMask = PacketUtils.readNextByte(packetData);
-
-                        if (protocolversion >= PacketUtils.MC18Version)
-                        {
-                            Location location = handler.GetCurrentLocation();
-                            location.X = (locMask & 1 << 0) != 0 ? location.X + x : x;
-                            location.Y = (locMask & 1 << 1) != 0 ? location.Y + y : y;
-                            location.Z = (locMask & 1 << 2) != 0 ? location.Z + z : z;
-                            handler.UpdateLocation(location, yaw, pitch);
-                        }
-                        else handler.UpdateLocation(new Location(x, y, z), yaw, pitch);
-                    }
-
-                    if (protocolversion >= PacketUtils.MC19Version)
-                    {
-                        int teleportID = PacketUtils.readNextVarInt(packetData);
-                        // Teleport confirm packet
-                        SendPacket(PacketOutgoingType.TeleportConfirm, PacketUtils.getVarInt(teleportID));
-                    }
-                    break;
-                case PacketIncomingType.ChunkData:
-                    if (Settings.TerrainAndMovements)
-                    {
-                        int chunkX = PacketUtils.readNextInt(packetData);
-                        int chunkZ = PacketUtils.readNextInt(packetData);
-                        bool chunksContinuous = PacketUtils.readNextBool(packetData);
-                        ushort chunkMask = protocolversion >= PacketUtils.MC19Version
-                            ? (ushort)PacketUtils.readNextVarInt(packetData)
-                            : PacketUtils.readNextUShort(packetData);
-                        if (protocolversion < PacketUtils.MC18Version)
-                        {
-                            ushort addBitmap = PacketUtils.readNextUShort(packetData);
-                            int compressedDataSize = PacketUtils.readNextInt(packetData);
-                            byte[] compressed = PacketUtils.readData(compressedDataSize, packetData);
-                            byte[] decompressed = ZlibUtils.Decompress(compressed);
-                            ProcessChunkColumnData(chunkX, chunkZ, chunkMask, addBitmap, currentDimension == 0, chunksContinuous, new List<byte>(decompressed));
-                        }
-                        else
-                        {
-                            int dataSize = PacketUtils.readNextVarInt(packetData);
-                            ProcessChunkColumnData(chunkX, chunkZ, chunkMask, 0, false, chunksContinuous, packetData);
-                        }
-                    }
-                    break;
-                case PacketIncomingType.MultiBlockChange:
-                    if (Settings.TerrainAndMovements)
-                    {
-                        int chunkX = PacketUtils.readNextInt(packetData);
-                        int chunkZ = PacketUtils.readNextInt(packetData);
-                        int recordCount = protocolversion < PacketUtils.MC18Version
-                            ? (int)PacketUtils.readNextShort(packetData)
-                            : PacketUtils.readNextVarInt(packetData);
-
-                        for (int i = 0; i < recordCount; i++)
-                        {
-                            byte locationXZ;
-                            ushort blockIdMeta;
-                            int blockY;
-
-                            if (protocolversion < PacketUtils.MC18Version)
-                            {
-                                blockIdMeta = PacketUtils.readNextUShort(packetData);
-                                blockY = (ushort)PacketUtils.readNextByte(packetData);
-                                locationXZ = PacketUtils.readNextByte(packetData);
-                            }
-                            else
-                            {
-                                locationXZ = PacketUtils.readNextByte(packetData);
-                                blockY = (ushort)PacketUtils.readNextByte(packetData);
-                                blockIdMeta = (ushort)PacketUtils.readNextVarInt(packetData);
-                            }
-
-                            int blockX = locationXZ >> 4;
-                            int blockZ = locationXZ & 0x0F;
-                            Block block = new Block(blockIdMeta);
-                            handler.GetWorld().SetBlock(new Location(chunkX, chunkZ, blockX, blockY, blockZ), block);
-                        }
-                    }
-                    break;
-                case PacketIncomingType.BlockChange:
-                    if (Settings.TerrainAndMovements)
-                        if (protocolversion < PacketUtils.MC18Version)
-                        {
-                            int blockX = PacketUtils.readNextInt(packetData);
-                            int blockY = PacketUtils.readNextByte(packetData);
-                            int blockZ = PacketUtils.readNextInt(packetData);
-                            short blockId = (short)PacketUtils.readNextVarInt(packetData);
-                            byte blockMeta = PacketUtils.readNextByte(packetData);
-                            handler.GetWorld().SetBlock(new Location(blockX, blockY, blockZ), new Block(blockId, blockMeta));
-                        }
-                        else handler.GetWorld().SetBlock(Location.FromLong(PacketUtils.readNextULong(packetData)), new Block((ushort)PacketUtils.readNextVarInt(packetData)));
-                    break;
-                case PacketIncomingType.MapChunkBulk:
-                    if (protocolversion < PacketUtils.MC19Version && Settings.TerrainAndMovements)
-                    {
-                        int chunkCount;
-                        bool hasSkyLight;
-                        List<byte> chunkData = packetData;
-
-                        //Read global fields
-                        if (protocolversion < PacketUtils.MC18Version)
-                        {
-                            chunkCount = PacketUtils.readNextShort(packetData);
-                            int compressedDataSize = PacketUtils.readNextInt(packetData);
-                            hasSkyLight = PacketUtils.readNextBool(packetData);
-                            byte[] compressed = PacketUtils.readData(compressedDataSize, packetData);
-                            byte[] decompressed = ZlibUtils.Decompress(compressed);
-                            chunkData = new List<byte>(decompressed);
-                        }
-                        else
-                        {
-                            hasSkyLight = PacketUtils.readNextBool(packetData);
-                            chunkCount = PacketUtils.readNextVarInt(packetData);
-                        }
-
-                        //Read chunk records
-                        int[] chunkXs = new int[chunkCount];
-                        int[] chunkZs = new int[chunkCount];
-                        ushort[] chunkMasks = new ushort[chunkCount];
-                        ushort[] addBitmaps = new ushort[chunkCount];
-                        for (int chunkColumnNo = 0; chunkColumnNo < chunkCount; chunkColumnNo++)
-                        {
-                            chunkXs[chunkColumnNo] = PacketUtils.readNextInt(packetData);
-                            chunkZs[chunkColumnNo] = PacketUtils.readNextInt(packetData);
-                            chunkMasks[chunkColumnNo] = PacketUtils.readNextUShort(packetData);
-                            addBitmaps[chunkColumnNo] = protocolversion < PacketUtils.MC18Version
-                                ? PacketUtils.readNextUShort(packetData)
-                                : (ushort)0;
-                        }
-
-                        //Process chunk records
-                        for (int chunkColumnNo = 0; chunkColumnNo < chunkCount; chunkColumnNo++)
-                            ProcessChunkColumnData(chunkXs[chunkColumnNo], chunkZs[chunkColumnNo], chunkMasks[chunkColumnNo], addBitmaps[chunkColumnNo], hasSkyLight, true, chunkData);
-                    }
-                    break;
-                case PacketIncomingType.UnloadChunk:
-                    if (protocolversion >= PacketUtils.MC19Version && Settings.TerrainAndMovements)
-                    {
-                        int chunkX = PacketUtils.readNextInt(packetData);
-                        int chunkZ = PacketUtils.readNextInt(packetData);
-                        handler.GetWorld()[chunkX, chunkZ] = null;
-                    }
-                    break;
-                case PacketIncomingType.PlayerListUpdate:
-                    if (protocolversion >= PacketUtils.MC18Version)
-                    {
-                        int action = PacketUtils.readNextVarInt(packetData);
-                        int numActions = PacketUtils.readNextVarInt(packetData);
-                        for (int i = 0; i < numActions; i++)
-                        {
-                            Guid uuid = PacketUtils.readNextUUID(packetData);
-                            switch (action)
-                            {
-                                case 0x00: //Player Join
-                                    string name = PacketUtils.readNextString(packetData);
-                                    int propNum = PacketUtils.readNextVarInt(packetData);
-                                    for (int p = 0; p < propNum; p++)
-                                    {
-                                        string key = PacketUtils.readNextString(packetData);
-                                        string val = PacketUtils.readNextString(packetData);
-                                        if (PacketUtils.readNextBool(packetData))
-                                            PacketUtils.readNextString(packetData);
-                                    }
-                                    PacketUtils.readNextVarInt(packetData);
-                                    PacketUtils.readNextVarInt(packetData);
-                                    if (PacketUtils.readNextBool(packetData))
-                                        PacketUtils.readNextString(packetData);
-                                    handler.OnPlayerJoin(uuid, name);
-                                    break;
-                                case 0x01: //Update gamemode
-                                case 0x02: //Update latency
-                                    PacketUtils.readNextVarInt(packetData);
-                                    break;
-                                case 0x03: //Update display name
-                                    if (PacketUtils.readNextBool(packetData))
-                                        PacketUtils.readNextString(packetData);
-                                    break;
-                                case 0x04: //Player Leave
-                                    handler.OnPlayerLeave(uuid);
-                                    break;
-                                default:
-                                    //Unknown player list item type
-                                    break;
-                            }
-                        }
-                    }
-                    else //MC 1.7.X does not provide UUID in tab-list updates
-                    {
-                        string name = PacketUtils.readNextString(packetData);
-                        bool online = PacketUtils.readNextBool(packetData);
-                        short ping = PacketUtils.readNextShort(packetData);
-                        Guid FakeUUID = new Guid(MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(name)).Take(16).ToArray());
-                        if (online)
-                            handler.OnPlayerJoin(FakeUUID, name);
-                        else handler.OnPlayerLeave(FakeUUID);
-                    }
-                    break;
-                case PacketIncomingType.TabCompleteResult:
-                    if (protocolversion >= PacketUtils.MC17w46aVersion)
-                    {
-                        autocomplete_transaction_id = PacketUtils.readNextVarInt(packetData);
-                    }
-
-                    if (protocolversion >= PacketUtils.MC17w47aVersion)
-                    {
-                        // Start of the text to replace - currently unused
-                        PacketUtils.readNextVarInt(packetData);
-                    }
-
-                    if (protocolversion >= PacketUtils.MC18w06aVersion)
-                    {
-                        // Length of the text to replace - currently unused
-                        PacketUtils.readNextVarInt(packetData);
-                    }
-
-                    int autocomplete_count = PacketUtils.readNextVarInt(packetData);
-                    autocomplete_result.Clear();
-                    for (int i = 0; i < autocomplete_count; i++)
-                        autocomplete_result.Add(PacketUtils.readNextString(packetData));
-                    autocomplete_received = true;
-
-                    // In protocolversion >= MC18w06aVersion there is additional data if the match is a tooltip
-                    // Don't worry about skipping remaining data since there is no useful for us (yet)
-                    break;
-                case PacketIncomingType.PluginMessage:
-                    String channel = PacketUtils.readNextString(packetData);
-                    if (protocolversion < PacketUtils.MC18Version)
-                    {
-                        if (forgeInfo == null)
-                        {
-                            // 1.7 and lower prefix plugin channel packets with the length.
-                            // We can skip it, though.
-                            PacketUtils.readNextShort(packetData);
-                        }
-                        else
-                        {
-                            // Forge does something even weirder with the length.
-                            PacketUtils.readNextVarShort(packetData);
-                        }
-                    }
-
-                    // The remaining data in the array is the entire payload of the packet.
-                    handler.OnPluginChannelMessage(channel, packetData.ToArray());
-
-                    #region Forge Login
-                    if (forgeInfo != null && fmlHandshakeState != FMLHandshakeClientState.DONE)
-                    {
-                        if (channel == "FML|HS")
-                        {
-                            FMLHandshakeDiscriminator discriminator = (FMLHandshakeDiscriminator)PacketUtils.readNextByte(packetData);
-
-                            if (discriminator == FMLHandshakeDiscriminator.HandshakeReset)
-                            {
-                                fmlHandshakeState = FMLHandshakeClientState.START;
-                                return true;
-                            }
-
-                            switch (fmlHandshakeState)
-                            {
-                                case FMLHandshakeClientState.START:
-                                    if (discriminator != FMLHandshakeDiscriminator.ServerHello)
-                                        return false;
-
-                                    // Send the plugin channel registration.
-                                    // REGISTER is somewhat special in that it doesn't actually include length information,
-                                    // and is also \0-separated.
-                                    // Also, yes, "FML" is there twice.  Don't ask me why, but that's the way forge does it.
-                                    string[] channels = { "FML|HS", "FML", "FML|MP", "FML", "FORGE" };
-                                    SendPluginChannelPacket("REGISTER", Encoding.UTF8.GetBytes(string.Join("\0", channels)));
-
-                                    byte fmlProtocolVersion = PacketUtils.readNextByte(packetData);
-
-                                    if (Settings.DebugMessages)
-                                        ConsoleIO.WriteLineFormatted("§8Forge protocol version : " + fmlProtocolVersion);
-
-                                    if (fmlProtocolVersion >= 1)
-                                        this.currentDimension = PacketUtils.readNextInt(packetData);
-
-                                    // Tell the server we're running the same version.
-                                    SendForgeHandshakePacket(FMLHandshakeDiscriminator.ClientHello, new byte[] { fmlProtocolVersion });
-
-                                    // Then tell the server that we're running the same mods.
-                                    if (Settings.DebugMessages)
-                                        ConsoleIO.WriteLineFormatted("§8Sending falsified mod list to server...");
-                                    byte[][] mods = new byte[forgeInfo.Mods.Count][];
-                                    for (int i = 0; i < forgeInfo.Mods.Count; i++)
-                                    {
-                                        ForgeInfo.ForgeMod mod = forgeInfo.Mods[i];
-                                        mods[i] = PacketUtils.concatBytes(PacketUtils.getString(mod.ModID), PacketUtils.getString(mod.Version));
-                                    }
-                                    SendForgeHandshakePacket(FMLHandshakeDiscriminator.ModList,
-                                                             PacketUtils.concatBytes(PacketUtils.getVarInt(forgeInfo.Mods.Count), PacketUtils.concatBytes(mods)));
-
-                                    fmlHandshakeState = FMLHandshakeClientState.WAITINGSERVERDATA;
-
-                                    return true;
-                                case FMLHandshakeClientState.WAITINGSERVERDATA:
-                                    if (discriminator != FMLHandshakeDiscriminator.ModList)
-                                        return false;
-
-                                    Thread.Sleep(2000);
-
-                                    if (Settings.DebugMessages)
-                                        ConsoleIO.WriteLineFormatted("§8Accepting server mod list...");
-                                    // Tell the server that yes, we are OK with the mods it has
-                                    // even though we don't actually care what mods it has.
-
-                                    SendForgeHandshakePacket(FMLHandshakeDiscriminator.HandshakeAck,
-                                        new byte[] { (byte)FMLHandshakeClientState.WAITINGSERVERDATA });
-
-                                    fmlHandshakeState = FMLHandshakeClientState.WAITINGSERVERCOMPLETE;
-                                    return false;
-                                case FMLHandshakeClientState.WAITINGSERVERCOMPLETE:
-                                    // The server now will tell us a bunch of registry information.
-                                    // We need to read it all, though, until it says that there is no more.
-                                    if (discriminator != FMLHandshakeDiscriminator.RegistryData)
-                                        return false;
-
-                                    if (protocolversion < PacketUtils.MC18Version)
-                                    {
-                                        // 1.7.10 and below have one registry
-                                        // with blocks and items.
-                                        int registrySize = PacketUtils.readNextVarInt(packetData);
-
-                                        if (Settings.DebugMessages)
-                                            ConsoleIO.WriteLineFormatted("§8Received registry with " + registrySize + " entries");
-
-                                        fmlHandshakeState = FMLHandshakeClientState.PENDINGCOMPLETE;
-                                    }
-                                    else
-                                    {
-                                        // 1.8+ has more than one registry.
-
-                                        bool hasNextRegistry = PacketUtils.readNextBool(packetData);
-                                        string registryName = PacketUtils.readNextString(packetData);
-                                        int registrySize = PacketUtils.readNextVarInt(packetData);
-                                        if (Settings.DebugMessages)
-                                            ConsoleIO.WriteLineFormatted("§8Received registry " + registryName + " with " + registrySize + " entries");
-                                        if (!hasNextRegistry)
-                                            fmlHandshakeState = FMLHandshakeClientState.PENDINGCOMPLETE;
-                                    }
-
-                                    return false;
-                                case FMLHandshakeClientState.PENDINGCOMPLETE:
-                                    // The server will ask us to accept the registries.
-                                    // Just say yes.
-                                    if (discriminator != FMLHandshakeDiscriminator.HandshakeAck)
-                                        return false;
-                                    if (Settings.DebugMessages)
-                                        ConsoleIO.WriteLineFormatted("§8Accepting server registries...");
-                                    SendForgeHandshakePacket(FMLHandshakeDiscriminator.HandshakeAck,
-                                        new byte[] { (byte)FMLHandshakeClientState.PENDINGCOMPLETE });
-                                    fmlHandshakeState = FMLHandshakeClientState.COMPLETE;
-
-                                    return true;
-                                case FMLHandshakeClientState.COMPLETE:
-                                    // One final "OK".  On the actual forge source, a packet is sent from
-                                    // the client to the client saying that the connection was complete, but
-                                    // we don't need to do that.
-
-                                    SendForgeHandshakePacket(FMLHandshakeDiscriminator.HandshakeAck,
-                                        new byte[] { (byte)FMLHandshakeClientState.COMPLETE });
-                                    if (Settings.DebugMessages)
-                                        ConsoleIO.WriteLine("Forge server connection complete!");
-                                    fmlHandshakeState = FMLHandshakeClientState.DONE;
-                                    return true;
-                            }
-                        }
-                    }
-                    #endregion
-
-                    return false;
-                case PacketIncomingType.KickPacket:
-                    handler.OnConnectionLost(ChatBot.DisconnectReason.InGameKick, ChatParser.ParseText(PacketUtils.readNextString(packetData)));
-                    return false;
-                case PacketIncomingType.NetworkCompressionTreshold:
-                    if (protocolversion >= PacketUtils.MC18Version && protocolversion < PacketUtils.MC19Version)
-                        compression_treshold = PacketUtils.readNextVarInt(packetData);
-                    break;
-                case PacketIncomingType.ResourcePackSend:
-                    string url = PacketUtils.readNextString(packetData);
-                    string hash = PacketUtils.readNextString(packetData);
-                    //Send back "accepted" and "successfully loaded" responses for plugins making use of resource pack mandatory
-                    byte[] responseHeader = new byte[0];
-                    if (protocolversion < PacketUtils.MC110Version) //MC 1.10 does not include resource pack hash in responses
-                        responseHeader = PacketUtils.concatBytes(PacketUtils.getVarInt(hash.Length), Encoding.UTF8.GetBytes(hash));
-                    SendPacket(PacketOutgoingType.ResourcePackStatus, PacketUtils.concatBytes(responseHeader, PacketUtils.getVarInt(3))); //Accepted pack
-                    SendPacket(PacketOutgoingType.ResourcePackStatus, PacketUtils.concatBytes(responseHeader, PacketUtils.getVarInt(0))); //Successfully loaded
-                    break;
-                default:
-                    return false; //Ignored packet
+                return false;
             }
-            return true; //Packet processed
+
+            var data = pHandler.Handle(this, handler, packetData);
+            switch (pHandler.Type())
+            {
+                case InboundTypes.JoinGame:
+                {
+                    currentDimension = ((JoinGameResult) data).Dimension;
+                }
+                    break;
+
+                case InboundTypes.ChunkData:
+                {
+                    if (null == data)
+                        break;
+                    ProcessChunkColumnData(((ChunkDataResult) data).ChunkX, ((ChunkDataResult) data).ChunkZ,
+                        ((ChunkDataResult) data).ChunkMask, ((ChunkDataResult) data).ChunkMask2,
+                        ((ChunkDataResult) data).HasLights, ((ChunkDataResult) data).ChunksContinuous,
+                        ((ChunkDataResult) data).Cache);
+                }
+                    break;
+            }
+
+            return true;
         }
+
+
+//        /// <summary>
+//        /// Handle the given packet
+//        /// </summary>
+//        /// <param name="packetID">Packet ID</param>
+//        /// <param name="packetData">Packet contents</param>
+//        /// <returns>TRUE if the packet was processed, FALSE if ignored or unknown</returns>
+//        private bool handlePacket(int packetID, List<byte> packetData)
+//        {
+//            if (login_phase)
+//            {
+//                switch (packetID) //Packet IDs are different while logging in
+//                {
+//                    case 0x03:
+//                        if (protocolversion >= PacketUtils.MC18Version)
+//                            compression_treshold = PacketUtils.readNextVarInt(packetData);
+//                        break;
+//                    default:
+//                        return false; //Ignored packet
+//                }
+//            }
+//
+//            // Regular in-game packets
+//            switch (getPacketIncomingType(packetID, protocolversion))
+//            {
+//                case PacketIncomingType.KeepAlive:
+//                    SendPacket(PacketOutgoingType.KeepAlive, packetData);
+//                    break;
+//                case PacketIncomingType.JoinGame:
+////                    var h = PacketFactory<IJoinGameHandler>.Instantiate(protocolversion);
+////                    var res = h.Handle(handler, packetData);
+////                    currentDimension = res.Dimension;
+//                    break;
+//                case PacketIncomingType.ChatMessage:
+//                    string message = PacketUtils.readNextString(packetData);
+//                    try
+//                    {
+//                        //Hide system messages or xp bar messages?
+//                        byte messageType = PacketUtils.readNextByte(packetData);
+//                        if ((messageType == 1 && !Settings.DisplaySystemMessages)
+//                            || (messageType == 2 && !Settings.DisplayXPBarMessages))
+//                            break;
+//                    }
+//                    catch (ArgumentOutOfRangeException)
+//                    {
+//                        /* No message type */
+//                    }
+//
+//                    handler.OnTextReceived(message, true);
+//                    break;
+//                case PacketIncomingType.Respawn:
+//                    this.currentDimension = PacketUtils.readNextInt(packetData);
+//                    PacketUtils.readNextByte(packetData);
+//                    PacketUtils.readNextByte(packetData);
+//                    PacketUtils.readNextString(packetData);
+//                    break;
+//                case PacketIncomingType.PlayerPositionAndLook:
+//                    if (Settings.TerrainAndMovements)
+//                    {
+//                        double x = PacketUtils.readNextDouble(packetData);
+//                        double y = PacketUtils.readNextDouble(packetData);
+//                        double z = PacketUtils.readNextDouble(packetData);
+//                        float yaw = PacketUtils.readNextFloat(packetData);
+//                        float pitch = PacketUtils.readNextFloat(packetData);
+//                        byte locMask = PacketUtils.readNextByte(packetData);
+//
+//                        if (protocolversion >= PacketUtils.MC18Version)
+//                        {
+//                            Location location = handler.GetCurrentLocation();
+//                            location.X = (locMask & 1 << 0) != 0 ? location.X + x : x;
+//                            location.Y = (locMask & 1 << 1) != 0 ? location.Y + y : y;
+//                            location.Z = (locMask & 1 << 2) != 0 ? location.Z + z : z;
+//                            handler.UpdateLocation(location, yaw, pitch);
+//                        }
+//                        else handler.UpdateLocation(new Location(x, y, z), yaw, pitch);
+//                    }
+//
+//                    if (protocolversion >= PacketUtils.MC19Version)
+//                    {
+//                        int teleportID = PacketUtils.readNextVarInt(packetData);
+//                        // Teleport confirm packet
+//                        SendPacket(PacketOutgoingType.TeleportConfirm, PacketUtils.getVarInt(teleportID));
+//                    }
+//
+//                    break;
+//                case PacketIncomingType.ChunkData:
+//                    if (Settings.TerrainAndMovements)
+//                    {
+//                        int chunkX = PacketUtils.readNextInt(packetData);
+//                        int chunkZ = PacketUtils.readNextInt(packetData);
+//                        bool chunksContinuous = PacketUtils.readNextBool(packetData);
+//                        ushort chunkMask = protocolversion >= PacketUtils.MC19Version
+//                            ? (ushort) PacketUtils.readNextVarInt(packetData)
+//                            : PacketUtils.readNextUShort(packetData);
+//                        if (protocolversion < PacketUtils.MC18Version)
+//                        {
+//                            ushort addBitmap = PacketUtils.readNextUShort(packetData);
+//                            int compressedDataSize = PacketUtils.readNextInt(packetData);
+//                            byte[] compressed = PacketUtils.readData(compressedDataSize, packetData);
+//                            byte[] decompressed = ZlibUtils.Decompress(compressed);
+//                            ProcessChunkColumnData(chunkX, chunkZ, chunkMask, addBitmap, currentDimension == 0,
+//                                chunksContinuous, new List<byte>(decompressed));
+//                        }
+//                        else
+//                        {
+//                            int dataSize = PacketUtils.readNextVarInt(packetData);
+//                            ProcessChunkColumnData(chunkX, chunkZ, chunkMask, 0, false, chunksContinuous, packetData);
+//                        }
+//                    }
+//
+//                    break;
+//                case PacketIncomingType.MultiBlockChange:
+//                    if (Settings.TerrainAndMovements)
+//                    {
+//                        int chunkX = PacketUtils.readNextInt(packetData);
+//                        int chunkZ = PacketUtils.readNextInt(packetData);
+//                        int recordCount = protocolversion < PacketUtils.MC18Version
+//                            ? (int) PacketUtils.readNextShort(packetData)
+//                            : PacketUtils.readNextVarInt(packetData);
+//
+//                        for (int i = 0; i < recordCount; i++)
+//                        {
+//                            byte locationXZ;
+//                            ushort blockIdMeta;
+//                            int blockY;
+//
+//                            if (protocolversion < PacketUtils.MC18Version)
+//                            {
+//                                blockIdMeta = PacketUtils.readNextUShort(packetData);
+//                                blockY = (ushort) PacketUtils.readNextByte(packetData);
+//                                locationXZ = PacketUtils.readNextByte(packetData);
+//                            }
+//                            else
+//                            {
+//                                locationXZ = PacketUtils.readNextByte(packetData);
+//                                blockY = (ushort) PacketUtils.readNextByte(packetData);
+//                                blockIdMeta = (ushort) PacketUtils.readNextVarInt(packetData);
+//                            }
+//
+//                            int blockX = locationXZ >> 4;
+//                            int blockZ = locationXZ & 0x0F;
+//                            Block block = new Block(blockIdMeta);
+//                            handler.GetWorld().SetBlock(new Location(chunkX, chunkZ, blockX, blockY, blockZ), block);
+//                        }
+//                    }
+//
+//                    break;
+//                case PacketIncomingType.BlockChange:
+//                    if (Settings.TerrainAndMovements)
+//                        if (protocolversion < PacketUtils.MC18Version)
+//                        {
+//                            int blockX = PacketUtils.readNextInt(packetData);
+//                            int blockY = PacketUtils.readNextByte(packetData);
+//                            int blockZ = PacketUtils.readNextInt(packetData);
+//                            short blockId = (short) PacketUtils.readNextVarInt(packetData);
+//                            byte blockMeta = PacketUtils.readNextByte(packetData);
+//                            handler.GetWorld().SetBlock(new Location(blockX, blockY, blockZ),
+//                                new Block(blockId, blockMeta));
+//                        }
+////                        else
+////                            handler.GetWorld().SetBlock(Location.FromLong(PacketUtils.readNextULong(packetData)),
+////                                new Block((ushort) PacketUtils.readNextVarInt(packetData)));
+//
+//                    break;
+//                case PacketIncomingType.MapChunkBulk:
+//                    if (protocolversion < PacketUtils.MC19Version && Settings.TerrainAndMovements)
+//                    {
+//                        int chunkCount;
+//                        bool hasSkyLight;
+//                        List<byte> chunkData = packetData;
+//
+//                        //Read global fields
+//                        if (protocolversion < PacketUtils.MC18Version)
+//                        {
+//                            chunkCount = PacketUtils.readNextShort(packetData);
+//                            int compressedDataSize = PacketUtils.readNextInt(packetData);
+//                            hasSkyLight = PacketUtils.readNextBool(packetData);
+//                            byte[] compressed = PacketUtils.readData(compressedDataSize, packetData);
+//                            byte[] decompressed = ZlibUtils.Decompress(compressed);
+//                            chunkData = new List<byte>(decompressed);
+//                        }
+//                        else
+//                        {
+//                            hasSkyLight = PacketUtils.readNextBool(packetData);
+//                            chunkCount = PacketUtils.readNextVarInt(packetData);
+//                        }
+//
+//                        //Read chunk records
+//                        int[] chunkXs = new int[chunkCount];
+//                        int[] chunkZs = new int[chunkCount];
+//                        ushort[] chunkMasks = new ushort[chunkCount];
+//                        ushort[] addBitmaps = new ushort[chunkCount];
+//                        for (int chunkColumnNo = 0; chunkColumnNo < chunkCount; chunkColumnNo++)
+//                        {
+//                            chunkXs[chunkColumnNo] = PacketUtils.readNextInt(packetData);
+//                            chunkZs[chunkColumnNo] = PacketUtils.readNextInt(packetData);
+//                            chunkMasks[chunkColumnNo] = PacketUtils.readNextUShort(packetData);
+//                            addBitmaps[chunkColumnNo] = protocolversion < PacketUtils.MC18Version
+//                                ? PacketUtils.readNextUShort(packetData)
+//                                : (ushort) 0;
+//                        }
+//
+//                        //Process chunk records
+//                        for (int chunkColumnNo = 0; chunkColumnNo < chunkCount; chunkColumnNo++)
+//                            ProcessChunkColumnData(chunkXs[chunkColumnNo], chunkZs[chunkColumnNo],
+//                                chunkMasks[chunkColumnNo], addBitmaps[chunkColumnNo], hasSkyLight, true, chunkData);
+//                    }
+//
+//                    break;
+//                case PacketIncomingType.UnloadChunk:
+//                    if (protocolversion >= PacketUtils.MC19Version && Settings.TerrainAndMovements)
+//                    {
+//                        int chunkX = PacketUtils.readNextInt(packetData);
+//                        int chunkZ = PacketUtils.readNextInt(packetData);
+//                        handler.GetWorld()[chunkX, chunkZ] = null;
+//                    }
+//
+//                    break;
+//                case PacketIncomingType.PlayerListUpdate:
+//                    if (protocolversion >= PacketUtils.MC18Version)
+//                    {
+//                        int action = PacketUtils.readNextVarInt(packetData);
+//                        int numActions = PacketUtils.readNextVarInt(packetData);
+//                        for (int i = 0; i < numActions; i++)
+//                        {
+//                            Guid uuid = PacketUtils.readNextUUID(packetData);
+//                            switch (action)
+//                            {
+//                                case 0x00: //Player Join
+//                                    string name = PacketUtils.readNextString(packetData);
+//                                    int propNum = PacketUtils.readNextVarInt(packetData);
+//                                    for (int p = 0; p < propNum; p++)
+//                                    {
+//                                        string key = PacketUtils.readNextString(packetData);
+//                                        string val = PacketUtils.readNextString(packetData);
+//                                        if (PacketUtils.readNextBool(packetData))
+//                                            PacketUtils.readNextString(packetData);
+//                                    }
+//
+//                                    PacketUtils.readNextVarInt(packetData);
+//                                    PacketUtils.readNextVarInt(packetData);
+//                                    if (PacketUtils.readNextBool(packetData))
+//                                        PacketUtils.readNextString(packetData);
+//                                    handler.OnPlayerJoin(uuid, name);
+//                                    break;
+//                                case 0x01: //Update gamemode
+//                                case 0x02: //Update latency
+//                                    PacketUtils.readNextVarInt(packetData);
+//                                    break;
+//                                case 0x03: //Update display name
+//                                    if (PacketUtils.readNextBool(packetData))
+//                                        PacketUtils.readNextString(packetData);
+//                                    break;
+//                                case 0x04: //Player Leave
+//                                    handler.OnPlayerLeave(uuid);
+//                                    break;
+//                                default:
+//                                    //Unknown player list item type
+//                                    break;
+//                            }
+//                        }
+//                    }
+//                    else //MC 1.7.X does not provide UUID in tab-list updates
+//                    {
+//                        string name = PacketUtils.readNextString(packetData);
+//                        bool online = PacketUtils.readNextBool(packetData);
+//                        short ping = PacketUtils.readNextShort(packetData);
+//                        Guid FakeUUID =
+//                            new Guid(MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(name)).Take(16).ToArray());
+//                        if (online)
+//                            handler.OnPlayerJoin(FakeUUID, name);
+//                        else handler.OnPlayerLeave(FakeUUID);
+//                    }
+//
+//                    break;
+//                case PacketIncomingType.TabCompleteResult:
+//                    if (protocolversion >= PacketUtils.MC17w46aVersion)
+//                    {
+//                        autocomplete_transaction_id = PacketUtils.readNextVarInt(packetData);
+//                    }
+//
+//                    if (protocolversion >= PacketUtils.MC17w47aVersion)
+//                    {
+//                        // Start of the text to replace - currently unused
+//                        PacketUtils.readNextVarInt(packetData);
+//                    }
+//
+//                    if (protocolversion >= PacketUtils.MC18w06aVersion)
+//                    {
+//                        // Length of the text to replace - currently unused
+//                        PacketUtils.readNextVarInt(packetData);
+//                    }
+//
+//                    int autocomplete_count = PacketUtils.readNextVarInt(packetData);
+//                    autocomplete_result.Clear();
+//                    for (int i = 0; i < autocomplete_count; i++)
+//                        autocomplete_result.Add(PacketUtils.readNextString(packetData));
+//                    autocomplete_received = true;
+//
+//                    // In protocolversion >= MC18w06aVersion there is additional data if the match is a tooltip
+//                    // Don't worry about skipping remaining data since there is no useful for us (yet)
+//                    break;
+//                case PacketIncomingType.PluginMessage:
+//                    String channel = PacketUtils.readNextString(packetData);
+//                    if (protocolversion < PacketUtils.MC18Version)
+//                    {
+//                        if (forgeInfo == null)
+//                        {
+//                            // 1.7 and lower prefix plugin channel packets with the length.
+//                            // We can skip it, though.
+//                            PacketUtils.readNextShort(packetData);
+//                        }
+//                        else
+//                        {
+//                            // Forge does something even weirder with the length.
+//                            PacketUtils.readNextVarShort(packetData);
+//                        }
+//                    }
+//
+//                    // The remaining data in the array is the entire payload of the packet.
+//                    handler.OnPluginChannelMessage(channel, packetData.ToArray());
+//
+//                    #region Forge Login
+//
+//                    if (forgeInfo != null && fmlHandshakeState != FMLHandshakeClientState.DONE)
+//                    {
+//                        if (channel == "FML|HS")
+//                        {
+//                            FMLHandshakeDiscriminator discriminator =
+//                                (FMLHandshakeDiscriminator) PacketUtils.readNextByte(packetData);
+//
+//                            if (discriminator == FMLHandshakeDiscriminator.HandshakeReset)
+//                            {
+//                                fmlHandshakeState = FMLHandshakeClientState.START;
+//                                return true;
+//                            }
+//
+//                            switch (fmlHandshakeState)
+//                            {
+//                                case FMLHandshakeClientState.START:
+//                                    if (discriminator != FMLHandshakeDiscriminator.ServerHello)
+//                                        return false;
+//
+//                                    // Send the plugin channel registration.
+//                                    // REGISTER is somewhat special in that it doesn't actually include length information,
+//                                    // and is also \0-separated.
+//                                    // Also, yes, "FML" is there twice.  Don't ask me why, but that's the way forge does it.
+//                                    string[] channels = {"FML|HS", "FML", "FML|MP", "FML", "FORGE"};
+//                                    SendPluginChannelPacket("REGISTER",
+//                                        Encoding.UTF8.GetBytes(string.Join("\0", channels)));
+//
+//                                    byte fmlProtocolVersion = PacketUtils.readNextByte(packetData);
+//
+//                                    if (Settings.DebugMessages)
+//                                        ConsoleIO.WriteLineFormatted(
+//                                            "§8Forge protocol version : " + fmlProtocolVersion);
+//
+//                                    if (fmlProtocolVersion >= 1)
+//                                        this.currentDimension = PacketUtils.readNextInt(packetData);
+//
+//                                    // Tell the server we're running the same version.
+//                                    SendForgeHandshakePacket(FMLHandshakeDiscriminator.ClientHello,
+//                                        new byte[] {fmlProtocolVersion});
+//
+//                                    // Then tell the server that we're running the same mods.
+//                                    if (Settings.DebugMessages)
+//                                        ConsoleIO.WriteLineFormatted("§8Sending falsified mod list to server...");
+//                                    byte[][] mods = new byte[forgeInfo.Mods.Count][];
+//                                    for (int i = 0; i < forgeInfo.Mods.Count; i++)
+//                                    {
+//                                        ForgeInfo.ForgeMod mod = forgeInfo.Mods[i];
+//                                        mods[i] = PacketUtils.concatBytes(PacketUtils.getString(mod.ModID),
+//                                            PacketUtils.getString(mod.Version));
+//                                    }
+//
+//                                    SendForgeHandshakePacket(FMLHandshakeDiscriminator.ModList,
+//                                        PacketUtils.concatBytes(PacketUtils.getVarInt(forgeInfo.Mods.Count),
+//                                            PacketUtils.concatBytes(mods)));
+//
+//                                    fmlHandshakeState = FMLHandshakeClientState.WAITINGSERVERDATA;
+//
+//                                    return true;
+//                                case FMLHandshakeClientState.WAITINGSERVERDATA:
+//                                    if (discriminator != FMLHandshakeDiscriminator.ModList)
+//                                        return false;
+//
+//                                    Thread.Sleep(2000);
+//
+//                                    if (Settings.DebugMessages)
+//                                        ConsoleIO.WriteLineFormatted("§8Accepting server mod list...");
+//                                    // Tell the server that yes, we are OK with the mods it has
+//                                    // even though we don't actually care what mods it has.
+//
+//                                    SendForgeHandshakePacket(FMLHandshakeDiscriminator.HandshakeAck,
+//                                        new byte[] {(byte) FMLHandshakeClientState.WAITINGSERVERDATA});
+//
+//                                    fmlHandshakeState = FMLHandshakeClientState.WAITINGSERVERCOMPLETE;
+//                                    return false;
+//                                case FMLHandshakeClientState.WAITINGSERVERCOMPLETE:
+//                                    // The server now will tell us a bunch of registry information.
+//                                    // We need to read it all, though, until it says that there is no more.
+//                                    if (discriminator != FMLHandshakeDiscriminator.RegistryData)
+//                                        return false;
+//
+//                                    if (protocolversion < PacketUtils.MC18Version)
+//                                    {
+//                                        // 1.7.10 and below have one registry
+//                                        // with blocks and items.
+//                                        int registrySize = PacketUtils.readNextVarInt(packetData);
+//
+//                                        if (Settings.DebugMessages)
+//                                            ConsoleIO.WriteLineFormatted(
+//                                                "§8Received registry with " + registrySize + " entries");
+//
+//                                        fmlHandshakeState = FMLHandshakeClientState.PENDINGCOMPLETE;
+//                                    }
+//                                    else
+//                                    {
+//                                        // 1.8+ has more than one registry.
+//
+//                                        bool hasNextRegistry = PacketUtils.readNextBool(packetData);
+//                                        string registryName = PacketUtils.readNextString(packetData);
+//                                        int registrySize = PacketUtils.readNextVarInt(packetData);
+//                                        if (Settings.DebugMessages)
+//                                            ConsoleIO.WriteLineFormatted(
+//                                                "§8Received registry " + registryName + " with " + registrySize +
+//                                                " entries");
+//                                        if (!hasNextRegistry)
+//                                            fmlHandshakeState = FMLHandshakeClientState.PENDINGCOMPLETE;
+//                                    }
+//
+//                                    return false;
+//                                case FMLHandshakeClientState.PENDINGCOMPLETE:
+//                                    // The server will ask us to accept the registries.
+//                                    // Just say yes.
+//                                    if (discriminator != FMLHandshakeDiscriminator.HandshakeAck)
+//                                        return false;
+//                                    if (Settings.DebugMessages)
+//                                        ConsoleIO.WriteLineFormatted("§8Accepting server registries...");
+//                                    SendForgeHandshakePacket(FMLHandshakeDiscriminator.HandshakeAck,
+//                                        new byte[] {(byte) FMLHandshakeClientState.PENDINGCOMPLETE});
+//                                    fmlHandshakeState = FMLHandshakeClientState.COMPLETE;
+//
+//                                    return true;
+//                                case FMLHandshakeClientState.COMPLETE:
+//                                    // One final "OK".  On the actual forge source, a packet is sent from
+//                                    // the client to the client saying that the connection was complete, but
+//                                    // we don't need to do that.
+//
+//                                    SendForgeHandshakePacket(FMLHandshakeDiscriminator.HandshakeAck,
+//                                        new byte[] {(byte) FMLHandshakeClientState.COMPLETE});
+//                                    if (Settings.DebugMessages)
+//                                        ConsoleIO.WriteLine("Forge server connection complete!");
+//                                    fmlHandshakeState = FMLHandshakeClientState.DONE;
+//                                    return true;
+//                            }
+//                        }
+//                    }
+//
+//                    #endregion
+//
+//                    return false;
+//                case PacketIncomingType.KickPacket:
+//                    handler.OnConnectionLost(ChatBot.DisconnectReason.InGameKick,
+//                        ChatParser.ParseText(PacketUtils.readNextString(packetData)));
+//                    return false;
+//                case PacketIncomingType.NetworkCompressionTreshold:
+//                    if (protocolversion >= PacketUtils.MC18Version && protocolversion < PacketUtils.MC19Version)
+//                        compression_treshold = PacketUtils.readNextVarInt(packetData);
+//                    break;
+//                case PacketIncomingType.ResourcePackSend:
+//                    string url = PacketUtils.readNextString(packetData);
+//                    string hash = PacketUtils.readNextString(packetData);
+//                    //Send back "accepted" and "successfully loaded" responses for plugins making use of resource pack mandatory
+//                    byte[] responseHeader = new byte[0];
+//                    if (protocolversion < PacketUtils.MC110Version
+//                    ) //MC 1.10 does not include resource pack hash in responses
+//                        responseHeader = PacketUtils.concatBytes(PacketUtils.getVarInt(hash.Length),
+//                            Encoding.UTF8.GetBytes(hash));
+//                    SendPacket(PacketOutgoingType.ResourcePackStatus,
+//                        PacketUtils.concatBytes(responseHeader, PacketUtils.getVarInt(3))); //Accepted pack
+//                    SendPacket(PacketOutgoingType.ResourcePackStatus,
+//                        PacketUtils.concatBytes(responseHeader, PacketUtils.getVarInt(0))); //Successfully loaded
+//                    break;
+//                default:
+//                    return false; //Ignored packet
+//            }
+//
+//            return true; //Packet processed
+//        }
 
         /// <summary>
         /// Process chunk column data from the server and (un)load the chunk from the Minecraft world
@@ -713,7 +890,8 @@ namespace MinecraftClient.Protocol.Handlers
         /// <param name="hasSkyLight">Contains skylight info</param>
         /// <param name="chunksContinuous">Are the chunk continuous</param>
         /// <param name="cache">Cache for reading chunk data</param>
-        private void ProcessChunkColumnData(int chunkX, int chunkZ, ushort chunkMask, ushort chunkMask2, bool hasSkyLight, bool chunksContinuous, List<byte> cache)
+        private void ProcessChunkColumnData(int chunkX, int chunkZ, ushort chunkMask, ushort chunkMask2,
+            bool hasSkyLight, bool chunksContinuous, List<byte> cache)
         {
             if (protocolversion >= PacketUtils.MC19Version)
             {
@@ -735,7 +913,7 @@ namespace MinecraftClient.Protocol.Handlers
 
                         // Bit mask covering bitsPerBlock bits
                         // EG, if bitsPerBlock = 5, valueMask = 00011111 in binary
-                        uint valueMask = (uint)((1 << bitsPerBlock) - 1);
+                        uint valueMask = (uint) ((1 << bitsPerBlock) - 1);
 
                         ulong[] dataArray = PacketUtils.readNextULongArray(cache);
 
@@ -760,18 +938,19 @@ namespace MinecraftClient.Protocol.Handlers
                                         ushort blockId;
                                         if (startLong == endLong)
                                         {
-                                            blockId = (ushort)((dataArray[startLong] >> startOffset) & valueMask);
+                                            blockId = (ushort) ((dataArray[startLong] >> startOffset) & valueMask);
                                         }
                                         else
                                         {
                                             int endOffset = 64 - startOffset;
-                                            blockId = (ushort)((dataArray[startLong] >> startOffset | dataArray[endLong] << endOffset) & valueMask);
+                                            blockId = (ushort) ((dataArray[startLong] >> startOffset |
+                                                                 dataArray[endLong] << endOffset) & valueMask);
                                         }
 
                                         if (usePalette)
                                         {
                                             // Get the real block ID out of the palette
-                                            blockId = (ushort)palette[blockId];
+                                            blockId = (ushort) palette[blockId];
                                         }
 
                                         chunk[blockX, blockY, blockZ] = new Block(blockId);
@@ -816,11 +995,13 @@ namespace MinecraftClient.Protocol.Handlers
                             Chunk chunk = new Chunk();
 
                             //Read chunk data, all at once for performance reasons, and build the chunk object
-                            Queue<ushort> queue = new Queue<ushort>(PacketUtils.readNextUShortsLittleEndian(Chunk.SizeX * Chunk.SizeY * Chunk.SizeZ, cache));
+                            Queue<ushort> queue = new Queue<ushort>(
+                                PacketUtils.readNextUShortsLittleEndian(Chunk.SizeX * Chunk.SizeY * Chunk.SizeZ,
+                                    cache));
                             for (int blockY = 0; blockY < Chunk.SizeY; blockY++)
-                                for (int blockZ = 0; blockZ < Chunk.SizeZ; blockZ++)
-                                    for (int blockX = 0; blockX < Chunk.SizeX; blockX++)
-                                        chunk[blockX, blockY, blockZ] = new Block(queue.Dequeue());
+                            for (int blockZ = 0; blockZ < Chunk.SizeZ; blockZ++)
+                            for (int blockX = 0; blockX < Chunk.SizeX; blockX++)
+                                chunk[blockX, blockY, blockZ] = new Block(queue.Dequeue());
 
                             //We have our chunk, save the chunk into the world
                             if (handler.GetWorld()[chunkX, chunkZ] == null)
@@ -870,23 +1051,29 @@ namespace MinecraftClient.Protocol.Handlers
                     }
 
                     //Read chunk data, unpacking 4-bit values into 8-bit values for block metadata
-                    Queue<byte> blockTypes = new Queue<byte>(PacketUtils.readData(Chunk.SizeX * Chunk.SizeY * Chunk.SizeZ * sectionCount, cache));
+                    Queue<byte> blockTypes =
+                        new Queue<byte>(PacketUtils.readData(Chunk.SizeX * Chunk.SizeY * Chunk.SizeZ * sectionCount,
+                            cache));
                     Queue<byte> blockMeta = new Queue<byte>();
-                    foreach (byte packed in PacketUtils.readData((Chunk.SizeX * Chunk.SizeY * Chunk.SizeZ * sectionCount) / 2, cache))
+                    foreach (byte packed in PacketUtils.readData(
+                        (Chunk.SizeX * Chunk.SizeY * Chunk.SizeZ * sectionCount) / 2, cache))
                     {
-                        byte hig = (byte)(packed >> 4);
-                        byte low = (byte)(packed & (byte)0x0F);
+                        byte hig = (byte) (packed >> 4);
+                        byte low = (byte) (packed & (byte) 0x0F);
                         blockMeta.Enqueue(hig);
                         blockMeta.Enqueue(low);
                     }
 
                     //Skip data we don't need
-                    PacketUtils.readData((Chunk.SizeX * Chunk.SizeY * Chunk.SizeZ * sectionCount) / 2, cache);          //Block light
+                    PacketUtils.readData((Chunk.SizeX * Chunk.SizeY * Chunk.SizeZ * sectionCount) / 2,
+                        cache); //Block light
                     if (hasSkyLight)
-                        PacketUtils.readData((Chunk.SizeX * Chunk.SizeY * Chunk.SizeZ * sectionCount) / 2, cache);      //Sky light
-                    PacketUtils.readData((Chunk.SizeX * Chunk.SizeY * Chunk.SizeZ * addDataSectionCount) / 2, cache);   //BlockAdd
+                        PacketUtils.readData((Chunk.SizeX * Chunk.SizeY * Chunk.SizeZ * sectionCount) / 2,
+                            cache); //Sky light
+                    PacketUtils.readData((Chunk.SizeX * Chunk.SizeY * Chunk.SizeZ * addDataSectionCount) / 2,
+                        cache); //BlockAdd
                     if (chunksContinuous)
-                        PacketUtils.readData(Chunk.SizeX * Chunk.SizeZ, cache);                                         //Biomes
+                        PacketUtils.readData(Chunk.SizeX * Chunk.SizeZ, cache); //Biomes
 
                     //Load chunk data
                     for (int chunkY = 0; chunkY < ChunkColumn.ColumnSize; chunkY++)
@@ -896,9 +1083,9 @@ namespace MinecraftClient.Protocol.Handlers
                             Chunk chunk = new Chunk();
 
                             for (int blockY = 0; blockY < Chunk.SizeY; blockY++)
-                                for (int blockZ = 0; blockZ < Chunk.SizeZ; blockZ++)
-                                    for (int blockX = 0; blockX < Chunk.SizeX; blockX++)
-                                        chunk[blockX, blockY, blockZ] = new Block(blockTypes.Dequeue(), blockMeta.Dequeue());
+                            for (int blockZ = 0; blockZ < Chunk.SizeZ; blockZ++)
+                            for (int blockX = 0; blockX < Chunk.SizeX; blockX++)
+                                chunk[blockX, blockY, blockZ] = new Block(blockTypes.Dequeue(), blockMeta.Dequeue());
 
                             if (handler.GetWorld()[chunkX, chunkZ] == null)
                                 handler.GetWorld()[chunkX, chunkZ] = new ChunkColumn();
@@ -932,7 +1119,9 @@ namespace MinecraftClient.Protocol.Handlers
                     c.Close();
                 }
             }
-            catch { }
+            catch
+            {
+            }
         }
 
         /// <summary>
@@ -950,8 +1139,11 @@ namespace MinecraftClient.Protocol.Handlers
                     Receive(cache, 0, offset, SocketFlags.None);
                     return cache;
                 }
-                catch (OutOfMemoryException) { }
+                catch (OutOfMemoryException)
+                {
+                }
             }
+
             return new byte[] { };
         }
 
@@ -973,6 +1165,7 @@ namespace MinecraftClient.Protocol.Handlers
                 if (j > 5) throw new OverflowException("VarInt too big");
                 if ((k & 0x80) != 128) break;
             }
+
             return i;
         }
 
@@ -1002,25 +1195,25 @@ namespace MinecraftClient.Protocol.Handlers
             }
         }
 
-        /// <summary>
-        /// Send a forge plugin channel packet ("FML|HS").  Compression and encryption will be handled automatically
-        /// </summary>
-        /// <param name="discriminator">Discriminator to use.</param>
-        /// <param name="data">packet Data</param>
-        private void SendForgeHandshakePacket(FMLHandshakeDiscriminator discriminator, byte[] data)
-        {
-            SendPluginChannelPacket("FML|HS", PacketUtils.concatBytes(new byte[] { (byte)discriminator }, data));
-        }
+//        /// <summary>
+//        /// Send a forge plugin channel packet ("FML|HS").  Compression and encryption will be handled automatically
+//        /// </summary>
+//        /// <param name="discriminator">Discriminator to use.</param>
+//        /// <param name="data">packet Data</param>
+//        private void SendForgeHandshakePacket(FMLHandshakeDiscriminator discriminator, byte[] data)
+//        {
+//            SendPluginChannelPacket("FML|HS", PacketUtils.concatBytes(new byte[] {(byte) discriminator}, data));
+//        }
 
-        /// <summary>
-        /// Send a packet to the server.  Packet ID, compression, and encryption will be handled automatically.
-        /// </summary>
-        /// <param name="packet">packet type</param>
-        /// <param name="packetData">packet Data</param>
-        private void SendPacket(PacketOutgoingType packet, IEnumerable<byte> packetData)
-        {
-            SendPacket(getPacketOutgoingID(packet, protocolversion), packetData);
-        }
+//        /// <summary>
+//        /// Send a packet to the server.  Packet ID, compression, and encryption will be handled automatically.
+//        /// </summary>
+//        /// <param name="packet">packet type</param>
+//        /// <param name="packetData">packet Data</param>
+//        private void SendPacket(PacketOutgoingType packet, IEnumerable<byte> packetData)
+//        {
+//            SendPacket(getPacketOutgoingID(packet, protocolversion), packetData);
+//        }
 
         /// <summary>
         /// Send a packet to the server.  Compression and encryption will be handled automatically.
@@ -1070,9 +1263,11 @@ namespace MinecraftClient.Protocol.Handlers
         {
             byte[] protocol_version = PacketUtils.getVarInt(protocolversion);
             string server_address = handler.GetServerHost() + (forgeInfo != null ? "\0FML\0" : "");
-            byte[] server_port = BitConverter.GetBytes((ushort)handler.GetServerPort()); Array.Reverse(server_port);
+            byte[] server_port = BitConverter.GetBytes((ushort) handler.GetServerPort());
+            Array.Reverse(server_port);
             byte[] next_state = PacketUtils.getVarInt(2);
-            byte[] handshake_packet = PacketUtils.concatBytes(protocol_version, PacketUtils.getString(server_address), server_port, next_state);
+            byte[] handshake_packet = PacketUtils.concatBytes(protocol_version, PacketUtils.getString(server_address),
+                server_port, next_state);
 
             SendPacket(0x00, handshake_packet);
 
@@ -1087,7 +1282,8 @@ namespace MinecraftClient.Protocol.Handlers
                 readNextPacket(ref packetID, packetData);
                 if (packetID == 0x00) //Login rejected
                 {
-                    handler.OnConnectionLost(ChatBot.DisconnectReason.LoginRejected, ChatParser.ParseText(PacketUtils.readNextString(packetData)));
+                    handler.OnConnectionLost(ChatBot.DisconnectReason.LoginRejected,
+                        ChatParser.ParseText(PacketUtils.readNextString(packetData)));
                     return false;
                 }
                 else if (packetID == 0x01) //Encryption request
@@ -1097,24 +1293,28 @@ namespace MinecraftClient.Protocol.Handlers
                     byte[] token = PacketUtils.readNextByteArray(protocolversion, packetData);
                     return StartEncryption(handler.GetUserUUID(), handler.GetSessionID(), token, serverID, Serverkey);
                 }
-                else if (packetID == 0x02) //Login successful
+                else
                 {
-                    ConsoleIO.WriteLineFormatted("§8Server is in offline mode.");
-                    login_phase = false;
-
-                    if (forgeInfo != null)
+                    if (packetID == 0x02) //Login successful
                     {
-                        // Do the forge handshake.
-                        if (!CompleteForgeHandshake())
+                        ConsoleIO.WriteLineFormatted("§8Server is in offline mode.");
+                        login_phase = false;
+
+                        if (forgeInfo != null)
                         {
-                            return false;
+                            // Do the forge handshake.
+                            if (!CompleteForgeHandshake())
+                            {
+                                return false;
+                            }
                         }
+
+                        StartUpdating();
+                        return true; //No need to check session or start encryption
                     }
 
-                    StartUpdating();
-                    return true; //No need to check session or start encryption
+                    handleIncomingPacket(packetID, packetData);
                 }
-                else handlePacket(packetID, packetData);
             }
         }
 
@@ -1133,13 +1333,12 @@ namespace MinecraftClient.Protocol.Handlers
 
                 if (packetID == 0x40) // Disconnect
                 {
-                    handler.OnConnectionLost(ChatBot.DisconnectReason.LoginRejected, ChatParser.ParseText(PacketUtils.readNextString(packetData)));
+                    handler.OnConnectionLost(ChatBot.DisconnectReason.LoginRejected,
+                        ChatParser.ParseText(PacketUtils.readNextString(packetData)));
                     return false;
                 }
-                else
-                {
-                    handlePacket(packetID, packetData);
-                }
+
+                handleIncomingPacket(packetID, packetData);
             }
 
             return true;
@@ -1151,7 +1350,8 @@ namespace MinecraftClient.Protocol.Handlers
         /// <returns>True if encryption was successful</returns>
         private bool StartEncryption(string uuid, string sessionID, byte[] token, string serverIDhash, byte[] serverKey)
         {
-            System.Security.Cryptography.RSACryptoServiceProvider RSAService = CryptoHandler.DecodeRSAPublicKey(serverKey);
+            System.Security.Cryptography.RSACryptoServiceProvider RSAService =
+                CryptoHandler.DecodeRSAPublicKey(serverKey);
             byte[] secretKey = CryptoHandler.GenerateAESPrivateKey();
 
             if (Settings.DebugMessages)
@@ -1160,7 +1360,8 @@ namespace MinecraftClient.Protocol.Handlers
             if (serverIDhash != "-")
             {
                 Console.WriteLine("Checking Session...");
-                if (!ProtocolHandler.SessionCheck(uuid, sessionID, CryptoHandler.getServerHash(serverIDhash, serverKey, secretKey)))
+                if (!ProtocolHandler.SessionCheck(uuid, sessionID,
+                    CryptoHandler.getServerHash(serverIDhash, serverKey, secretKey)))
                 {
                     handler.OnConnectionLost(ChatBot.DisconnectReason.LoginRejected, "Failed to check session.");
                     return false;
@@ -1186,26 +1387,31 @@ namespace MinecraftClient.Protocol.Handlers
                 readNextPacket(ref packetID, packetData);
                 if (packetID == 0x00) //Login rejected
                 {
-                    handler.OnConnectionLost(ChatBot.DisconnectReason.LoginRejected, ChatParser.ParseText(PacketUtils.readNextString(packetData)));
+                    handler.OnConnectionLost(ChatBot.DisconnectReason.LoginRejected,
+                        ChatParser.ParseText(PacketUtils.readNextString(packetData)));
                     return false;
                 }
-                else if (packetID == 0x02) //Login successful
+                else
                 {
-                    login_phase = false;
-
-                    if (forgeInfo != null)
+                    if (packetID == 0x02) //Login successful
                     {
-                        // Do the forge handshake.
-                        if (!CompleteForgeHandshake())
+                        login_phase = false;
+
+                        if (forgeInfo != null)
                         {
-                            return false;
+                            // Do the forge handshake.
+                            if (!CompleteForgeHandshake())
+                            {
+                                return false;
+                            }
                         }
+
+                        StartUpdating();
+                        return true;
                     }
 
-                    StartUpdating();
-                    return true;
+                    handleIncomingPacket(packetID, packetData);
                 }
-                else handlePacket(packetID, packetData);
             }
         }
 
@@ -1229,14 +1435,9 @@ namespace MinecraftClient.Protocol.Handlers
         {
             if (String.IsNullOrEmpty(message))
                 return true;
-            try
-            {
-                byte[] message_packet = PacketUtils.getString(message);
-                SendPacket(PacketOutgoingType.ChatMessage, message_packet);
-                return true;
-            }
-            catch (SocketException) { return false; }
-            catch (System.IO.IOException) { return false; }
+
+            return SendPacketOut(OutboundTypes.ChatMessage, null,
+                new ChatMessageRequest {Message = message});
         }
 
         /// <summary>
@@ -1245,12 +1446,7 @@ namespace MinecraftClient.Protocol.Handlers
         /// <returns>True if properly sent</returns>
         public bool SendRespawnPacket()
         {
-            try
-            {
-                SendPacket(PacketOutgoingType.ClientStatus, new byte[] { 0 });
-                return true;
-            }
-            catch (SocketException) { return false; }
+            return SendPacketOut(OutboundTypes.ClientStatus, null, null);
         }
 
         /// <summary>
@@ -1285,29 +1481,21 @@ namespace MinecraftClient.Protocol.Handlers
         /// <param name="skinParts">Show skin layers</param>
         /// <param name="mainHand">1.9+ main hand</param>
         /// <returns>True if client settings were successfully sent</returns>
-        public bool SendClientSettings(string language, byte viewDistance, byte difficulty, byte chatMode, bool chatColors, byte skinParts, byte mainHand)
+        public bool SendClientSettings(string language, byte viewDistance, byte difficulty, byte chatMode,
+            bool chatColors, byte skinParts, byte mainHand)
         {
-            try
+            var req = new ClientSettingsRequest
             {
-                List<byte> fields = new List<byte>();
-                fields.AddRange(PacketUtils.getString(language));
-                fields.Add(viewDistance);
-                fields.AddRange(protocolversion >= PacketUtils.MC19Version
-                    ? PacketUtils.getVarInt(chatMode)
-                    : new byte[] { chatMode });
-                fields.Add(chatColors ? (byte)1 : (byte)0);
-                if (protocolversion < PacketUtils.MC18Version)
-                {
-                    fields.Add(difficulty);
-                    fields.Add((byte)(skinParts & 0x1)); //show cape
-                }
-                else fields.Add(skinParts);
-                if (protocolversion >= PacketUtils.MC19Version)
-                    fields.AddRange(PacketUtils.getVarInt(mainHand));
-                SendPacket(PacketOutgoingType.ClientSettings, fields);
-            }
-            catch (SocketException) { }
-            return false;
+                Language = language,
+                Difficulty = difficulty,
+                ChatMode = chatMode,
+                MainHand = mainHand,
+                SkinParts = skinParts,
+                ChatColors = chatColors,
+                ViewDistance = viewDistance,
+            };
+
+            return SendPacketOut(OutboundTypes.ClientSettings, null, req);
         }
 
         /// <summary>
@@ -1320,33 +1508,38 @@ namespace MinecraftClient.Protocol.Handlers
         /// <returns>True if the location update was successfully sent</returns>
         public bool SendLocationUpdate(Location location, bool onGround, float? yaw = null, float? pitch = null)
         {
-            if (Settings.TerrainAndMovements)
-            {
-                byte[] yawpitch = new byte[0];
-                PacketOutgoingType packetType = PacketOutgoingType.PlayerPosition;
-
-                if (yaw.HasValue && pitch.HasValue)
-                {
-                    yawpitch = PacketUtils.concatBytes(PacketUtils.getFloat(yaw.Value), PacketUtils.getFloat(pitch.Value));
-                    packetType = PacketOutgoingType.PlayerPositionAndLook;
-                }
-
-                try
-                {
-                    SendPacket(packetType, PacketUtils.concatBytes(
-                        PacketUtils.getDouble(location.X),
-                        PacketUtils.getDouble(location.Y),
-                        protocolversion < PacketUtils.MC18Version
-                            ? PacketUtils.getDouble(location.Y + 1.62)
-                            : new byte[0],
-                        PacketUtils.getDouble(location.Z),
-                        yawpitch,
-                        new byte[] { onGround ? (byte)1 : (byte)0 }));
-                    return true;
-                }
-                catch (SocketException) { return false; }
-            }
-            else return false;
+//            if (Settings.TerrainAndMovements)
+//            {
+//                byte[] yawpitch = new byte[0];
+//                PacketOutgoingType packetType = PacketOutgoingType.PlayerPosition;
+//
+//                if (yaw.HasValue && pitch.HasValue)
+//                {
+//                    yawpitch = PacketUtils.concatBytes(PacketUtils.getFloat(yaw.Value),
+//                        PacketUtils.getFloat(pitch.Value));
+//                    packetType = PacketOutgoingType.PlayerPositionAndLook;
+//                }
+//
+//                try
+//                {
+//                    SendPacket(packetType, PacketUtils.concatBytes(
+//                        PacketUtils.getDouble(location.X),
+//                        PacketUtils.getDouble(location.Y),
+//                        protocolversion < PacketUtils.MC18Version
+//                            ? PacketUtils.getDouble(location.Y + 1.62)
+//                            : new byte[0],
+//                        PacketUtils.getDouble(location.Z),
+//                        yawpitch,
+//                        new byte[] {onGround ? (byte) 1 : (byte) 0}));
+//                    return true;
+//                }
+//                catch (SocketException)
+//                {
+//                    return false;
+//                }
+//            }
+//            else
+            return false;
         }
 
         /// <summary>
@@ -1356,26 +1549,7 @@ namespace MinecraftClient.Protocol.Handlers
         /// <param name="data">packet Data</param>
         public bool SendPluginChannelPacket(string channel, byte[] data)
         {
-            try
-            {
-                // In 1.7, length needs to be included.
-                // In 1.8, it must not be.
-                if (protocolversion < PacketUtils.MC18Version)
-                {
-                    byte[] length = BitConverter.GetBytes((short)data.Length);
-                    Array.Reverse(length);
-
-                    SendPacket(PacketOutgoingType.PluginMessage, PacketUtils.concatBytes(PacketUtils.getString(channel), length, data));
-                }
-                else
-                {
-                    SendPacket(PacketOutgoingType.PluginMessage, PacketUtils.concatBytes(PacketUtils.getString(channel), data));
-                }
-
-                return true;
-            }
-            catch (SocketException) { return false; }
-            catch (System.IO.IOException) { return false; }
+            return SendPacketOut(OutboundTypes.PluginMessage, data, new PluginMessageRequest {Channel = channel});
         }
 
         /// <summary>
@@ -1387,10 +1561,18 @@ namespace MinecraftClient.Protocol.Handlers
             {
                 c.Close();
             }
-            catch (SocketException) { }
-            catch (System.IO.IOException) { }
-            catch (NullReferenceException) { }
-            catch (ObjectDisposedException) { }
+            catch (SocketException)
+            {
+            }
+            catch (System.IO.IOException)
+            {
+            }
+            catch (NullReferenceException)
+            {
+            }
+            catch (ObjectDisposedException)
+            {
+            }
         }
 
         /// <summary>
@@ -1404,8 +1586,8 @@ namespace MinecraftClient.Protocol.Handlers
                 return new string[] { };
 
             byte[] transaction_id = PacketUtils.getVarInt(autocomplete_transaction_id);
-            byte[] assume_command = new byte[] { 0x00 };
-            byte[] has_position = new byte[] { 0x00 };
+            byte[] assume_command = new byte[] {0x00};
+            byte[] has_position = new byte[] {0x00};
 
             byte[] tabcomplete_packet = new byte[] { };
 
@@ -1414,11 +1596,13 @@ namespace MinecraftClient.Protocol.Handlers
                 if (protocolversion >= PacketUtils.MC17w46aVersion)
                 {
                     tabcomplete_packet = PacketUtils.concatBytes(tabcomplete_packet, transaction_id);
-                    tabcomplete_packet = PacketUtils.concatBytes(tabcomplete_packet, PacketUtils.getString(BehindCursor));
+                    tabcomplete_packet =
+                        PacketUtils.concatBytes(tabcomplete_packet, PacketUtils.getString(BehindCursor));
                 }
                 else
                 {
-                    tabcomplete_packet = PacketUtils.concatBytes(tabcomplete_packet, PacketUtils.getString(BehindCursor));
+                    tabcomplete_packet =
+                        PacketUtils.concatBytes(tabcomplete_packet, PacketUtils.getString(BehindCursor));
 
                     if (protocolversion >= PacketUtils.MC19Version)
                     {
@@ -1436,10 +1620,15 @@ namespace MinecraftClient.Protocol.Handlers
             autocomplete_received = false;
             autocomplete_result.Clear();
             autocomplete_result.Add(BehindCursor);
-            SendPacket(PacketOutgoingType.TabComplete, tabcomplete_packet);
+            SendPacketOut(OutboundTypes.TabComplete, tabcomplete_packet, null);
 
             int wait_left = 50; //do not wait more than 5 seconds (50 * 100 ms)
-            while (wait_left > 0 && !autocomplete_received) { System.Threading.Thread.Sleep(100); wait_left--; }
+            while (wait_left > 0 && !autocomplete_received)
+            {
+                System.Threading.Thread.Sleep(100);
+                wait_left--;
+            }
+
             if (autocomplete_result.Count > 0)
                 ConsoleIO.WriteLineFormatted("§8" + String.Join(" ", autocomplete_result), false);
             return autocomplete_result;
@@ -1457,15 +1646,18 @@ namespace MinecraftClient.Protocol.Handlers
 
             byte[] packet_id = PacketUtils.getVarInt(0);
             byte[] protocol_version = PacketUtils.getVarInt(-1);
-            byte[] server_port = BitConverter.GetBytes((ushort)port); Array.Reverse(server_port);
+            byte[] server_port = BitConverter.GetBytes((ushort) port);
+            Array.Reverse(server_port);
             byte[] next_state = PacketUtils.getVarInt(1);
-            byte[] packet = PacketUtils.concatBytes(packet_id, protocol_version, PacketUtils.getString(host), server_port, next_state);
+            byte[] packet = PacketUtils.concatBytes(packet_id, protocol_version, PacketUtils.getString(host),
+                server_port, next_state);
             byte[] tosend = PacketUtils.concatBytes(PacketUtils.getVarInt(packet.Length), packet);
 
             tcp.Client.Send(tosend, SocketFlags.None);
 
             byte[] status_request = PacketUtils.getVarInt(0);
-            byte[] request_packet = PacketUtils.concatBytes(PacketUtils.getVarInt(status_request.Length), status_request);
+            byte[] request_packet =
+                PacketUtils.concatBytes(PacketUtils.getVarInt(status_request.Length), status_request);
 
             tcp.Client.Send(request_packet, SocketFlags.None);
 
@@ -1481,7 +1673,8 @@ namespace MinecraftClient.Protocol.Handlers
                     if (!String.IsNullOrEmpty(result) && result.StartsWith("{") && result.EndsWith("}"))
                     {
                         Json.JSONData jsonData = Json.ParseJson(result);
-                        if (jsonData.Type == Json.JSONData.DataType.Object && jsonData.Properties.ContainsKey("version"))
+                        if (jsonData.Type == Json.JSONData.DataType.Object &&
+                            jsonData.Properties.ContainsKey("version"))
                         {
                             Json.JSONData versionData = jsonData.Properties["version"];
 
@@ -1498,10 +1691,12 @@ namespace MinecraftClient.Protocol.Handlers
                                 protocolversion = ProtocolHandler.MCVer2ProtocolVersion("1.8.0");
 
                             // Check for forge on the server.
-                            if (jsonData.Properties.ContainsKey("modinfo") && jsonData.Properties["modinfo"].Type == Json.JSONData.DataType.Object)
+                            if (jsonData.Properties.ContainsKey("modinfo") &&
+                                jsonData.Properties["modinfo"].Type == Json.JSONData.DataType.Object)
                             {
                                 Json.JSONData modData = jsonData.Properties["modinfo"];
-                                if (modData.Properties.ContainsKey("type") && modData.Properties["type"].StringValue == "FML")
+                                if (modData.Properties.ContainsKey("type") &&
+                                    modData.Properties["type"].StringValue == "FML")
                                 {
                                     forgeInfo = new ForgeInfo(modData);
 
@@ -1521,13 +1716,16 @@ namespace MinecraftClient.Protocol.Handlers
                                 }
                             }
 
-                            ConsoleIO.WriteLineFormatted("§8Server version : " + version + " (protocol v" + protocolversion + (forgeInfo != null ? ", with Forge)." : ")."));
+                            ConsoleIO.WriteLineFormatted("§8Server version : " + version + " (protocol v" +
+                                                         protocolversion +
+                                                         (forgeInfo != null ? ", with Forge)." : ")."));
 
                             return true;
                         }
                     }
                 }
             }
+
             return false;
         }
     }

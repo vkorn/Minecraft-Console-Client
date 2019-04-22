@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 
 namespace MinecraftClient.Mapping
-{
+{   
     /// <summary>
     /// Represents a location into a Minecraft world
     /// </summary>
@@ -165,41 +165,6 @@ namespace MinecraftClient.Mapping
                     && ((int)this.Z) == ((int)((Location)obj).Z);
             }
             return false;
-        }
-
-        /// <summary>
-        /// Get a representation of the location as unsigned long
-        /// </summary>
-        /// <remarks>
-        /// A modulo will be applied if the location is outside the following ranges:
-        /// X: -33,554,432 to +33,554,431
-        /// Y: -2,048 to +2,047
-        /// Z: -33,554,432 to +33,554,431
-        /// </remarks>
-        /// <returns>Location representation as ulong</returns>
-
-        public ulong GetLong()
-        {
-            return ((((ulong)X) & 0x3FFFFFF) << 38) | ((((ulong)Y) & 0xFFF) << 26) | (((ulong)Z) & 0x3FFFFFF);
-        }
-
-        /// <summary>
-        /// Get a location from an unsigned long.
-        /// </summary>
-        /// <returns>Location represented by the ulong</returns>
-
-        public static Location FromLong(ulong location)
-        {
-            int x = (int)(location >> 38);
-            int y = (int)((location >> 26) & 0xFFF);
-            int z = (int)(location << 38 >> 38);
-            if (x >= 33554432)
-                x -= 67108864;
-            if (y >= 2048)
-                y -= 4096;
-            if (z >= 33554432)
-                z -= 67108864;
-            return new Location(x, y, z);
         }
 
         /// <summary>
