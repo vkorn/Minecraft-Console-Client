@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using MinecraftClient.Mapping;
 using MinecraftClient.Protocol.Handlers;
+using MinecraftClient.Protocol.WorldProcessors.BlockProcessors.Legacy;
 
 namespace MinecraftClient.Protocol.Packets.Inbound.MultiBlockChange
 {
@@ -44,7 +45,7 @@ namespace MinecraftClient.Protocol.Packets.Inbound.MultiBlockChange
         {
             var blockX = locationXZ >> 4;
             var blockZ = locationXZ & 0x0F;
-            var block = new Block(blockIdMeta);
+            var block = handler.GetWorld().BlockProcessor.CreateBlockFromIdMetadata(blockIdMeta);
             handler.GetWorld().SetBlock(new Location(chunkX, chunkZ, blockX, blockY, blockZ), block);
         }
     }
