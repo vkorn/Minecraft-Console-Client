@@ -97,6 +97,7 @@
     <Compile Include="Commands\Script.cs" />
     <Compile Include="Commands\Send.cs" />
     <Compile Include="Commands\Set.cs" />
+    <Compile Include="Protocol\Packets\Inbound\MultiBlockChange\MultiBlockChangeHandler114Pre5.cs" />
     <Compile Include="Protocol\Packets\Outbound\PlayerPositionAndLook\PlayerPositionAndLookOut.cs" />
     <Compile Include="Protocol\Packets\Outbound\PlayerPositionAndLook\PlayerPositionAndLookOut112Pre5.cs" />
     <Compile Include="Protocol\Packets\Outbound\PlayerPositionAndLook\PlayerPositionAndLookOut113Pre4.cs" />
@@ -437,7 +438,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Protocol\Dns\Records\totla.txt" />
-    <Content Include="Readme.md" />
     <Content Include="Resources\AppIcon.ico" />
   </ItemGroup>
   <ItemGroup>

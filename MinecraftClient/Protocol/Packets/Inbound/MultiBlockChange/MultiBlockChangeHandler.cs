@@ -35,16 +35,16 @@ namespace MinecraftClient.Protocol.Packets.Inbound.MultiBlockChange
         {
             var blockIdMeta = PacketUtils.readNextUShort(packetData);
             var blockY = (ushort) PacketUtils.readNextByte(packetData);
-            var locationXZ = PacketUtils.readNextByte(packetData);
+            var locationXz = PacketUtils.readNextByte(packetData);
 
-            UpdateBlock(handler, chunkX, chunkZ, blockIdMeta, blockY, locationXZ);
+            UpdateBlock(handler, chunkX, chunkZ, blockIdMeta, blockY, locationXz);
         }
 
         protected virtual void UpdateBlock(IMinecraftComHandler handler, int chunkX, int chunkZ,
-            ushort blockIdMeta, ushort blockY, byte locationXZ)
+            ushort blockIdMeta, ushort blockY, byte locationXz)
         {
-            var blockX = locationXZ >> 4;
-            var blockZ = locationXZ & 0x0F;
+            var blockX = locationXz >> 4;
+            var blockZ = locationXz & 0x0F;
             var block = handler.GetWorld().BlockProcessor.CreateBlockFromIdMetadata(blockIdMeta);
             handler.GetWorld().SetBlock(new Location(chunkX, chunkZ, blockX, blockY, blockZ), block);
         }

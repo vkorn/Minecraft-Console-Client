@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using MinecraftClient.Mapping;
 using MinecraftClient.Protocol.Handlers;
 
@@ -7,6 +8,20 @@ namespace MinecraftClient.Protocol.Packets.Inbound.BlockChange
     {
         protected override int MinVersion => PacketUtils.MC114pre5Version;
         protected override int PacketId => 0x0B;
+        public override IInboundData Handle(IProtocol protocol, IMinecraftComHandler handler, List<byte> packetData)
+        {
+            if (!Settings.TerrainAndMovements)
+            {
+                return null;
+            }
+
+            var location = (long) PacketUtils.readNextULong(packetData);
+            var blockId = (short) PacketUtils.readNextVarInt(packetData);
+
+            handler.GetWorld().SetBlock(LocationFromLong(location), 
+                handler.GetWorld().BlockProcessor.CreateBlock(blockId));
+            return null;
+        }
 
         protected override Location LocationFromLong(long val)
         {
