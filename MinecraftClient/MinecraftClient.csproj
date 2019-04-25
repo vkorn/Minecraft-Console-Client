@@ -11,7 +11,6 @@
     <RootNamespace>MinecraftClient</RootNamespace>
     <AssemblyName>MinecraftClient</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
@@ -60,7 +59,22 @@
   </PropertyGroup>
   <PropertyGroup />
   <ItemGroup>
+    <Reference Include="DotNet.Glob, Version=3.1.0.0, Culture=neutral, PublicKeyToken=b68cc888b4f632d1">
+      <HintPath>..\packages\DotNet.Glob.3.1.0-alpha0004\lib\net40\DotNet.Glob.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="DotNetZip, Version=1.13.3.0, Culture=neutral, PublicKeyToken=6583c7c814667745">
+      <HintPath>..\packages\DotNetZip.1.13.3\lib\net40\DotNetZip.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed">
+      <HintPath>..\packages\Newtonsoft.Json.12.0.2\lib\net40\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+      <HintPath>..\..\..\..\..\Library\Frameworks\Mono.framework\Versions\5.20.1\lib\mono\4.0-api\System.dll</HintPath>
+    </Reference>
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Runtime.Serialization" />
@@ -88,10 +102,12 @@
     <Compile Include="Command.cs" />
     <Compile Include="Commands\Connect.cs" />
     <Compile Include="Commands\Debug.cs" />
+    <Compile Include="Commands\Inspect.cs" />
     <Compile Include="Commands\Look.cs" />
     <Compile Include="Commands\Move.cs" />
     <Compile Include="Commands\Exit.cs" />
     <Compile Include="Commands\Log.cs" />
+    <Compile Include="Commands\PositionedCommand.cs" />
     <Compile Include="Commands\Reco.cs" />
     <Compile Include="Commands\Respawn.cs" />
     <Compile Include="Commands\Script.cs" />
@@ -255,16 +271,20 @@
     <Compile Include="Protocol\Packets\Outbound\KeepAlive\KeepAliveOut19.cs" />
     <Compile Include="Protocol\Packets\Outbound\OutboundGamePacket.cs" />
     <Compile Include="Protocol\Packets\Outbound\OutboundTypes.cs" />
-    <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\Block.cs" />
+    <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\Block114Pre5.cs" />
     <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\BlockProcessor114Pre5.cs" />
+    <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\JsonBlockObject.cs" />
+    <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\JsonBlockObjectState.cs" />
     <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\Material.cs" />
-    <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\MaterialMapping.cs" />
+    <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\MaterialLoader114Pre5.cs" />
+    <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\MaterialRepresentation.cs" />
     <Compile Include="Protocol\WorldProcessors\BlockProcessors\BlockProcessor.cs" />
     <Compile Include="Protocol\WorldProcessors\BlockProcessors\IBlock.cs" />
     <Compile Include="Protocol\WorldProcessors\BlockProcessors\IBlockProcessor.cs" />
     <Compile Include="Protocol\WorldProcessors\BlockProcessors\Legacy\BlockLegacy.cs" />
     <Compile Include="Protocol\WorldProcessors\BlockProcessors\Legacy\BlockProcessorLegacy.cs" />
     <Compile Include="Protocol\WorldProcessors\BlockProcessors\Legacy\Material.cs" />
+    <Compile Include="Protocol\WorldProcessors\BlockProcessors\MaterialLoader.cs" />
     <Compile Include="Protocol\WorldProcessors\ChunkProcessors\ChunkProcessor.cs" />
     <Compile Include="Protocol\WorldProcessors\ChunkProcessors\ChunkProcessor114Pre5.cs" />
     <Compile Include="Protocol\WorldProcessors\ChunkProcessors\ChunkProcessor17.cs" />
@@ -439,12 +459,16 @@
   <ItemGroup>
     <Content Include="Protocol\Dns\Records\totla.txt" />
     <Content Include="Resources\AppIcon.ico" />
+    <EmbeddedResource Include="Resources\blocks114Pre5.json.zip" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Submodules\fNbt\fNbt\fNbt.csproj">
       <Project>{4488498d-976d-4da3-bf72-109531af0488}</Project>
       <Name>fNbt</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

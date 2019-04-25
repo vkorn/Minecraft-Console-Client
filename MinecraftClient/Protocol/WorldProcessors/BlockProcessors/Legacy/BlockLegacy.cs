@@ -1,4 +1,5 @@
-﻿using MinecraftClient.Mapping;
+﻿using System.Collections.Generic;
+using MinecraftClient.Mapping;
 
 namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors.Legacy
 {
@@ -89,6 +90,26 @@ namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors.Legacy
         public bool IsLiquid()
         {
             return Type.IsLiquid();
+        }
+
+        public string Material()
+        {
+            return Type.ToString();
+        }
+
+        public string Property(string name)
+        {
+            return "";
+        }
+
+        public int Id()
+        {
+            return (int) Type;
+        }
+
+        public Dictionary<string, string> Properties()
+        {
+            return new Dictionary<string, string>();
         }
     }
 }

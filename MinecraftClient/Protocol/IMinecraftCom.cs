@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using MinecraftClient.Crypto;
 using MinecraftClient.Mapping;
 
 namespace MinecraftClient.Protocol
@@ -85,5 +81,6 @@ namespace MinecraftClient.Protocol
         /// <param name="data">packet Data</param>
         /// <returns>True if message was successfully sent</returns>
         bool SendPluginChannelPacket(string channel, byte[] data);
+
     }
 }

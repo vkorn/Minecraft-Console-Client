@@ -5,7 +5,6 @@ using System.Text;
 using System.Net.Sockets;
 using System.Threading;
 using System.IO;
-using System.Net;
 using MinecraftClient.Protocol;
 using MinecraftClient.Proxy;
 using MinecraftClient.Protocol.Handlers.Forge;
@@ -16,7 +15,6 @@ namespace MinecraftClient
     /// <summary>
     /// The main client class, used to connect to a Minecraft server.
     /// </summary>
-
     public class McTcpClient : IMinecraftComHandler
     {
         public static int ReconnectionAttemptsLeft = 0;
@@ -28,7 +26,9 @@ namespace MinecraftClient
         private readonly List<ChatBot> bots = new List<ChatBot>();
         private static readonly List<ChatBot> botsOnHold = new List<ChatBot>();
 
-        private readonly Dictionary<string, List<ChatBot>> registeredBotPluginChannels = new Dictionary<string, List<ChatBot>>();
+        private readonly Dictionary<string, List<ChatBot>> registeredBotPluginChannels =
+            new Dictionary<string, List<ChatBot>>();
+
         private readonly List<string> registeredServerPluginChannels = new List<String>();
 
         private object locationLock = new object();
@@ -47,13 +47,40 @@ namespace MinecraftClient
         private string uuid;
         private string sessionid;
 
-        public int GetServerPort() { return port; }
-        public string GetServerHost() { return host; }
-        public string GetUsername() { return username; }
-        public string GetUserUUID() { return uuid; }
-        public string GetSessionID() { return sessionid; }
-        public Location GetCurrentLocation() { return location; }
-        public World GetWorld() { return world; }
+        public int GetServerPort()
+        {
+            return port;
+        }
+
+        public string GetServerHost()
+        {
+            return host;
+        }
+
+        public string GetUsername()
+        {
+            return username;
+        }
+
+        public string GetUserUUID()
+        {
+            return uuid;
+        }
+
+        public string GetSessionID()
+        {
+            return sessionid;
+        }
+
+        public Location GetCurrentLocation()
+        {
+            return location;
+        }
+
+        public World GetWorld()
+        {
+            return world;
+        }
 
         TcpClient client;
         IMinecraftCom handler;
@@ -63,7 +90,7 @@ namespace MinecraftClient
         {
             world = new World(protocolVersion);
         }
-        
+
         /// <summary>
         /// Starts the main chat client
         /// </summary>
@@ -73,8 +100,8 @@ namespace MinecraftClient
         /// <param name="server_ip">The server IP</param>
         /// <param name="port">The server port to use</param>
         /// <param name="protocolversion">Minecraft protocol version to use</param>
-        public McTcpClient(string username, string uuid, string sessionID, int protocolversion, 
-            ForgeInfo forgeInfo, string server_ip, ushort port):this(protocolversion)
+        public McTcpClient(string username, string uuid, string sessionID, int protocolversion,
+            ForgeInfo forgeInfo, string server_ip, ushort port) : this(protocolversion)
         {
             StartClient(username, uuid, sessionID, server_ip, port, protocolversion, forgeInfo, false, "");
         }
@@ -89,8 +116,8 @@ namespace MinecraftClient
         /// <param name="port">The server port to use</param>
         /// <param name="protocolversion">Minecraft protocol version to use</param>
         /// <param name="command">The text or command to send.</param>
-        public McTcpClient(string username, string uuid, string sessionID, string server_ip, ushort port, 
-            int protocolversion, ForgeInfo forgeInfo, string command):this(protocolversion)
+        public McTcpClient(string username, string uuid, string sessionID, string server_ip, ushort port,
+            int protocolversion, ForgeInfo forgeInfo, string command) : this(protocolversion)
         {
             StartClient(username, uuid, sessionID, server_ip, port, protocolversion, forgeInfo, true, command);
         }
@@ -106,7 +133,7 @@ namespace MinecraftClient
         /// <param name="uuid">The player's UUID for online-mode authentication</param>
         /// <param name="singlecommand">If set to true, the client will send a single command and then disconnect from the server</param>
         /// <param name="command">The text or command to send. Will only be sent if singlecommand is set to true.</param>
-        private void StartClient(string user, string uuid, string sessionID, string server_ip, ushort port, 
+        private void StartClient(string user, string uuid, string sessionID, string server_ip, ushort port,
             int protocolversion, ForgeInfo forgeInfo, bool singlecommand, string command)
         {
             bool retry = false;
@@ -120,15 +147,53 @@ namespace MinecraftClient
             {
                 if (botsOnHold.Count == 0)
                 {
-                    if (Settings.AntiAFK_Enabled) { BotLoad(new ChatBots.AntiAFK(Settings.AntiAFK_Delay)); }
-                    if (Settings.Hangman_Enabled) { BotLoad(new ChatBots.HangmanGame(Settings.Hangman_English)); }
-                    if (Settings.Alerts_Enabled) { BotLoad(new ChatBots.Alerts()); }
-                    if (Settings.ChatLog_Enabled) { BotLoad(new ChatBots.ChatLog(Settings.ExpandVars(Settings.ChatLog_File), Settings.ChatLog_Filter, Settings.ChatLog_DateTime)); }
-                    if (Settings.PlayerLog_Enabled) { BotLoad(new ChatBots.PlayerListLogger(Settings.PlayerLog_Delay, Settings.ExpandVars(Settings.PlayerLog_File))); }
-                    if (Settings.AutoRelog_Enabled) { BotLoad(new ChatBots.AutoRelog(Settings.AutoRelog_Delay, Settings.AutoRelog_Retries)); }
-                    if (Settings.ScriptScheduler_Enabled) { BotLoad(new ChatBots.ScriptScheduler(Settings.ExpandVars(Settings.ScriptScheduler_TasksFile))); }
-                    if (Settings.RemoteCtrl_Enabled) { BotLoad(new ChatBots.RemoteControl()); }
-                    if (Settings.AutoRespond_Enabled) { BotLoad(new ChatBots.AutoRespond(Settings.AutoRespond_Matches)); }
+                    if (Settings.AntiAFK_Enabled)
+                    {
+                        BotLoad(new ChatBots.AntiAFK(Settings.AntiAFK_Delay));
+                    }
+
+                    if (Settings.Hangman_Enabled)
+                    {
+                        BotLoad(new ChatBots.HangmanGame(Settings.Hangman_English));
+                    }
+
+                    if (Settings.Alerts_Enabled)
+                    {
+                        BotLoad(new ChatBots.Alerts());
+                    }
+
+                    if (Settings.ChatLog_Enabled)
+                    {
+                        BotLoad(new ChatBots.ChatLog(Settings.ExpandVars(Settings.ChatLog_File),
+                            Settings.ChatLog_Filter, Settings.ChatLog_DateTime));
+                    }
+
+                    if (Settings.PlayerLog_Enabled)
+                    {
+                        BotLoad(new ChatBots.PlayerListLogger(Settings.PlayerLog_Delay,
+                            Settings.ExpandVars(Settings.PlayerLog_File)));
+                    }
+
+                    if (Settings.AutoRelog_Enabled)
+                    {
+                        BotLoad(new ChatBots.AutoRelog(Settings.AutoRelog_Delay, Settings.AutoRelog_Retries));
+                    }
+
+                    if (Settings.ScriptScheduler_Enabled)
+                    {
+                        BotLoad(new ChatBots.ScriptScheduler(Settings.ExpandVars(Settings.ScriptScheduler_TasksFile)));
+                    }
+
+                    if (Settings.RemoteCtrl_Enabled)
+                    {
+                        BotLoad(new ChatBots.RemoteControl());
+                    }
+
+                    if (Settings.AutoRespond_Enabled)
+                    {
+                        BotLoad(new ChatBots.AutoRespond(Settings.AutoRespond_Matches));
+                    }
+
                     //Add your ChatBot here by uncommenting and adapting
                     //BotLoad(new ChatBots.YourBot());
                 }
@@ -138,7 +203,7 @@ namespace MinecraftClient
             {
                 client = ProxyHandler.newTcpClient(host, port);
                 client.ReceiveBufferSize = 1024 * 1024;
-                handler = Protocol.ProtocolHandler.GetProtocolHandler(client, protocolversion, forgeInfo, this);
+                handler = ProtocolHandler.GetProtocolHandler(client, protocolversion, forgeInfo, this);
                 Console.WriteLine("Version is supported.\nLogging in...");
 
                 try
@@ -160,8 +225,8 @@ namespace MinecraftClient
                             botsOnHold.Clear();
 
                             Console.WriteLine("Server was successfully joined.\nType '"
-                                + (Settings.internalCmdChar == ' ' ? "" : "" + Settings.internalCmdChar)
-                                + "quit' to leave the server.");
+                                              + (Settings.internalCmdChar == ' ' ? "" : "" + Settings.internalCmdChar)
+                                              + "quit' to leave the server.");
 
                             cmdprompt = new Thread(new ThreadStart(CommandPrompt));
                             cmdprompt.Name = "MCC Command prompt";
@@ -188,7 +253,9 @@ namespace MinecraftClient
                 if (ReconnectionAttemptsLeft > 0)
                 {
                     ConsoleIO.WriteLogLine("Waiting 5 seconds (" + ReconnectionAttemptsLeft + " attempts left)...");
-                    Thread.Sleep(5000); ReconnectionAttemptsLeft--; Program.Restart();
+                    Thread.Sleep(5000);
+                    ReconnectionAttemptsLeft--;
+                    Program.Restart();
                 }
                 else if (!singlecommand && Settings.interactiveMode)
                 {
@@ -211,15 +278,20 @@ namespace MinecraftClient
                 while (client.Client.Connected)
                 {
                     text = ConsoleIO.ReadLine();
-                    if (ConsoleIO.BasicIO && text.Length > 0 && text[0] == (char)0x00)
+                    if (ConsoleIO.BasicIO && text.Length > 0 && text[0] == (char) 0x00)
                     {
                         //Process a request from the GUI
-                        string[] command = text.Substring(1).Split((char)0x00);
+                        string[] command = text.Substring(1).Split((char) 0x00);
                         switch (command[0].ToLower())
                         {
                             case "autocomplete":
-                                if (command.Length > 1) { ConsoleIO.WriteLine((char)0x00 + "autocomplete" + (char)0x00 + handler.AutoComplete(command[1])); }
-                                else Console.WriteLine((char)0x00 + "autocomplete" + (char)0x00);
+                                if (command.Length > 1)
+                                {
+                                    ConsoleIO.WriteLine((char) 0x00 + "autocomplete" + (char) 0x00 +
+                                                        handler.AutoComplete(command[1]));
+                                }
+                                else Console.WriteLine((char) 0x00 + "autocomplete" + (char) 0x00);
+
                                 break;
                         }
                     }
@@ -232,7 +304,8 @@ namespace MinecraftClient
                             {
                                 string response_msg = "";
                                 string command = Settings.internalCmdChar == ' ' ? text : text.Substring(1);
-                                if (!PerformInternalCommand(Settings.ExpandVars(command), ref response_msg) && Settings.internalCmdChar == '/')
+                                if (!PerformInternalCommand(Settings.ExpandVars(command), ref response_msg) &&
+                                    Settings.internalCmdChar == '/')
                                 {
                                     SendText(text);
                                 }
@@ -246,8 +319,12 @@ namespace MinecraftClient
                     }
                 }
             }
-            catch (IOException) { }
-            catch (NullReferenceException) { }
+            catch (IOException)
+            {
+            }
+            catch (NullReferenceException)
+            {
+            }
         }
 
         /// <summary>
@@ -266,11 +343,11 @@ namespace MinecraftClient
                 Type[] cmds_classes = Program.GetTypesInNamespace("MinecraftClient.Commands");
                 foreach (Type type in cmds_classes)
                 {
-                    if (type.IsSubclassOf(typeof(Command)))
+                    if (type.IsSubclassOf(typeof(Command)) && !type.IsAbstract)
                     {
                         try
                         {
-                            Command cmd = (Command)Activator.CreateInstance(type);
+                            Command cmd = (Command) Activator.CreateInstance(type);
                             cmds[cmd.CMDName.ToLower()] = cmd;
                             cmd_names.Add(cmd.CMDName.ToLower());
                             foreach (string alias in cmd.getCMDAliases())
@@ -302,7 +379,9 @@ namespace MinecraftClient
                     }
                     else response_msg = "Unknown command '" + command_name + "'. Use 'help' for command list.";
                 }
-                else response_msg = "help <cmdname>. Available commands: " + String.Join(", ", cmd_names.ToArray()) + ". For server help, use '" + Settings.internalCmdChar + "send /help' instead.";
+                else
+                    response_msg = "help <cmdname>. Available commands: " + String.Join(", ", cmd_names.ToArray()) +
+                                   ". For server help, use '" + Settings.internalCmdChar + "send /help' instead.";
             }
             else if (cmds.ContainsKey(command_name))
             {
@@ -310,9 +389,12 @@ namespace MinecraftClient
             }
             else
             {
-                response_msg = "Unknown command '" + command_name + "'. Use '" + (Settings.internalCmdChar == ' ' ? "" : "" + Settings.internalCmdChar) + "help' for help.";
+                response_msg = "Unknown command '" + command_name + "'. Use '" +
+                               (Settings.internalCmdChar == ' ' ? "" : "" + Settings.internalCmdChar) +
+                               "help' for help.";
                 return false;
             }
+
             return true;
         }
 
@@ -411,6 +493,7 @@ namespace MinecraftClient
                     this.location += location;
                 }
                 else this.location = location;
+
                 locationReceived = true;
             }
         }
@@ -498,7 +581,7 @@ namespace MinecraftClient
             lock (locationLock)
             {
                 if (Movement.GetAvailableMoves(world, this.location, allowUnsafe).Contains(location))
-                    path = new Queue<Location>(new[] { location });
+                    path = new Queue<Location>(new[] {location});
                 else path = Movement.CalculatePath(world, this.location, location, allowUnsafe);
                 return path != null;
             }
@@ -519,6 +602,7 @@ namespace MinecraftClient
                 json = text;
                 text = ChatParser.ParseText(json, links);
             }
+
             ConsoleIO.WriteLineFormatted(text, true);
             if (Settings.DisplayChatLinks)
                 foreach (string link in links)
@@ -535,7 +619,8 @@ namespace MinecraftClient
                 {
                     if (!(e is ThreadAbortException))
                     {
-                        ConsoleIO.WriteLineFormatted("§8GetText: Got error from " + bot.ToString() + ": " + e.ToString());
+                        ConsoleIO.WriteLineFormatted(
+                            "§8GetText: Got error from " + bot.ToString() + ": " + e.ToString());
                     }
                     else throw; //ThreadAbortException should not be caught
                 }
@@ -590,7 +675,8 @@ namespace MinecraftClient
                 {
                     if (!(e is ThreadAbortException))
                     {
-                        ConsoleIO.WriteLineFormatted("§8Update: Got error from " + bot.ToString() + ": " + e.ToString());
+                        ConsoleIO.WriteLineFormatted("§8Update: Got error from " + bot.ToString() + ": " +
+                                                     e.ToString());
                     }
                     else throw; //ThreadAbortException should not be caught
                 }
@@ -612,15 +698,18 @@ namespace MinecraftClient
                             {
                                 Location next = path.Dequeue();
                                 steps = Movement.Move2Steps(location, next, ref motionY);
-                                UpdateLocation(location, next + new Location(0, 1, 0)); // Update yaw and pitch to look at next step
+                                UpdateLocation(location,
+                                    next + new Location(0, 1, 0)); // Update yaw and pitch to look at next step
                             }
                             else
                             {
                                 location = Movement.HandleGravity(world, location, ref motionY);
                             }
                         }
+
                         handler.SendLocationUpdate(location, Movement.IsOnGround(world, location), yaw, pitch);
                     }
+
                     // First 2 updates must be player position AND look, and player must not move (to conform with vanilla)
                     // Once yaw and pitch have been sent, switch back to location-only updates (without yaw and pitch)
                     yaw = null;
@@ -655,6 +744,7 @@ namespace MinecraftClient
                         if (Settings.splitMessageDelay.TotalSeconds > 0)
                             Thread.Sleep(Settings.splitMessageDelay);
                     }
+
                     return handler.SendChatMessage(text);
                 }
             }
@@ -728,6 +818,7 @@ namespace MinecraftClient
                     uuid2Player.Add(key.ToString(), onlinePlayers[key]);
                 }
             }
+
             return uuid2Player;
         }
 
@@ -786,11 +877,13 @@ namespace MinecraftClient
                 {
                     return false;
                 }
+
                 if (!registeredServerPluginChannels.Contains(channel))
                 {
                     return false;
                 }
             }
+
             return handler.SendPluginChannelPacket(channel, data);
         }
 
@@ -812,6 +905,7 @@ namespace MinecraftClient
                     }
                 }
             }
+
             if (channel == "UNREGISTER")
             {
                 string[] channels = Encoding.UTF8.GetString(data).Split('\0');

@@ -11,7 +11,6 @@ namespace MinecraftClient.Protocol
     /// It defines some callbacks that the MinecraftCom handler must have.
     /// It allows the protocol handler to abstract from the other parts of the program.
     /// </summary>
-
     public interface IMinecraftComHandler
     {
         /* The MinecraftCom Handler must
@@ -59,6 +58,8 @@ namespace MinecraftClient.Protocol
         /// <param name="yaw">New yaw</param>
         /// <param name="pitch">New pitch</param>
         void UpdateLocation(Location location, float yaw, float pitch);
+
+        void UpdateLocation(Location location, Location lookAtLocation);
 
         /// <summary>
         /// This method is called when the connection has been lost

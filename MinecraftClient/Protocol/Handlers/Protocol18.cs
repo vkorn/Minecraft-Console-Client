@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Net.Sockets;
 using System.Threading;
 using MinecraftClient.Crypto;
@@ -42,6 +42,8 @@ namespace MinecraftClient.Protocol.Handlers
 
         IMinecraftComHandler handler;
         Thread netRead;
+        private Thread _chunkProcessing;
+        private ConcurrentQueue<List<byte>> _chunkData;
         IAesStream s;
         TcpClient c;
 
@@ -51,15 +53,15 @@ namespace MinecraftClient.Protocol.Handlers
         private Dictionary<OutboundTypes, IOutboundGamePacket> _outboundPackets;
         private IChunkProcessor _chunkProcessor;
 
-        public Protocol18Handler(TcpClient Client, int ProtocolVersion, IMinecraftComHandler Handler,
-            ForgeInfo ForgeInfo)
+        public Protocol18Handler(TcpClient client, int protocolVersion, IMinecraftComHandler handler,
+            ForgeInfo forgeInfo)
         {
             ConsoleIO.SetAutoCompleteEngine(this);
             ChatParser.InitTranslations();
-            c = Client;
-            protocolversion = ProtocolVersion;
-            handler = Handler;
-            forgeInfo = ForgeInfo;
+            c = client;
+            protocolversion = protocolVersion;
+            this.handler = handler;
+            this.forgeInfo = forgeInfo;
             initHandlers();
         }
 
@@ -94,10 +96,29 @@ namespace MinecraftClient.Protocol.Handlers
                                          $"Implementation: {handler.GetWorld().BlockProcessor.GetType().Name}");
         }
 
-        private Protocol18Handler(TcpClient Client)
+        private Protocol18Handler(TcpClient client)
         {
-            this.c = Client;
+            c = client;
         }
+
+        private void ProcessChunksData()
+        {
+            IInboundGamePacketHandler chunk = _inboundHandlers.First(x => x.Value.Type() == InboundTypes.ChunkData)
+                .Value;
+
+            while (true)
+            {
+                Thread.Sleep(1);
+                if (_chunkData.TryDequeue(out var p))
+                {
+                    var data = chunk.Handle(this, handler, p);
+                    if (null == data)
+                        break;
+                    _chunkProcessor.Process(handler, (ChunkDataResult) data);
+                }
+            }
+        }
+
 
         /// <summary>
         /// Separate thread. Network reading loop.
@@ -206,7 +227,8 @@ namespace MinecraftClient.Protocol.Handlers
         {
             if (!_outboundPackets.TryGetValue(type, out var packet))
             {
-                throw new NotSupportedException();
+                ConsoleIO.WriteLineFormatted($"Packet {type.ToString()} is not supported in this version");
+                return false;
             }
 
             if (null == packetData)
@@ -258,20 +280,18 @@ namespace MinecraftClient.Protocol.Handlers
                 return false;
             }
 
+            if (pHandler.Type() == InboundTypes.ChunkData)
+            {
+                _chunkData.Enqueue(packetData);
+                return true;
+            }
+
             var data = pHandler.Handle(this, handler, packetData);
             switch (pHandler.Type())
             {
                 case InboundTypes.JoinGame:
                 {
                     currentDimension = ((JoinGameResult) data).Dimension;
-                }
-                    break;
-
-                case InboundTypes.ChunkData:
-                {
-                    if (null == data)
-                        break;
-                    _chunkProcessor.Process(handler, (ChunkDataResult) data);
                 }
                     break;
             }
@@ -776,8 +796,11 @@ namespace MinecraftClient.Protocol.Handlers
         /// </summary>
         private void StartUpdating()
         {
-            netRead = new Thread(new ThreadStart(Updater));
-            netRead.Name = "ProtocolPacketHandler";
+            _chunkData = new ConcurrentQueue<List<byte>>();
+            _chunkProcessing = new Thread(ProcessChunksData) {Name = "ChunkDataProcessing"};
+            _chunkProcessing.Start();
+
+            netRead = new Thread(Updater) {Name = "ProtocolPacketHandler"};
             netRead.Start();
         }
 
@@ -793,6 +816,8 @@ namespace MinecraftClient.Protocol.Handlers
                     netRead.Abort();
                     c.Close();
                 }
+
+                _chunkProcessing?.Abort();
             }
             catch
             {
@@ -870,15 +895,15 @@ namespace MinecraftClient.Protocol.Handlers
             }
         }
 
-//        /// <summary>
-//        /// Send a forge plugin channel packet ("FML|HS").  Compression and encryption will be handled automatically
-//        /// </summary>
-//        /// <param name="discriminator">Discriminator to use.</param>
-//        /// <param name="data">packet Data</param>
-//        private void SendForgeHandshakePacket(FMLHandshakeDiscriminator discriminator, byte[] data)
-//        {
-//            SendPluginChannelPacket("FML|HS", PacketUtils.concatBytes(new byte[] {(byte) discriminator}, data));
-//        }
+        /// <summary>
+        /// Send a forge plugin channel packet ("FML|HS").  Compression and encryption will be handled automatically
+        /// </summary>
+        /// <param name="discriminator">Discriminator to use.</param>
+        /// <param name="data">packet Data</param>
+        private void SendForgeHandshakePacket(FMLHandshakeDiscriminator discriminator, byte[] data)
+        {
+            SendPluginChannelPacket("FML|HS", PacketUtils.concatBytes(new[] {(byte) discriminator}, data));
+        }
 
         /// <summary>
         /// Send a packet to the server.  Compression and encryption will be handled automatically.
@@ -1013,20 +1038,20 @@ namespace MinecraftClient.Protocol.Handlers
         /// Start network encryption. Automatically called by Login() if the server requests encryption.
         /// </summary>
         /// <returns>True if encryption was successful</returns>
-        private bool StartEncryption(string uuid, string sessionID, byte[] token, string serverIDhash, byte[] serverKey)
+        private bool StartEncryption(string uuid, string sessionId, byte[] token, string serverIdHash, byte[] serverKey)
         {
-            System.Security.Cryptography.RSACryptoServiceProvider RSAService =
+            RSACryptoServiceProvider rsaService =
                 CryptoHandler.DecodeRSAPublicKey(serverKey);
             byte[] secretKey = CryptoHandler.GenerateAESPrivateKey();
 
             if (Settings.DebugMessages)
                 ConsoleIO.WriteLineFormatted("§8Crypto keys & hash generated.");
 
-            if (serverIDhash != "-")
+            if (serverIdHash != "-")
             {
                 Console.WriteLine("Checking Session...");
-                if (!ProtocolHandler.SessionCheck(uuid, sessionID,
-                    CryptoHandler.getServerHash(serverIDhash, serverKey, secretKey)))
+                if (!ProtocolHandler.SessionCheck(uuid, sessionId,
+                    CryptoHandler.getServerHash(serverIdHash, serverKey, secretKey)))
                 {
                     handler.OnConnectionLost(ChatBot.DisconnectReason.LoginRejected, "Failed to check session.");
                     return false;
@@ -1034,8 +1059,8 @@ namespace MinecraftClient.Protocol.Handlers
             }
 
             //Encrypt the data
-            byte[] key_enc = PacketUtils.getArray(protocolversion, RSAService.Encrypt(secretKey, false));
-            byte[] token_enc = PacketUtils.getArray(protocolversion, RSAService.Encrypt(token, false));
+            byte[] key_enc = PacketUtils.getArray(protocolversion, rsaService.Encrypt(secretKey, false));
+            byte[] token_enc = PacketUtils.getArray(protocolversion, rsaService.Encrypt(token, false));
 
             //Encryption Response packet
             SendPacket(0x01, PacketUtils.concatBytes(key_enc, token_enc));

@@ -91,6 +91,11 @@ namespace MinecraftClient.Mapping
             return BlockProcessor.CreateAirBlock();
         }
 
+        public IBlock GetBlock(double x, double y, double z)
+        {
+            return GetBlock(new Location(x, y, z));
+        }
+
         /// <summary>
         /// Set block at the specified location
         /// </summary>

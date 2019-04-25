@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors
 {
     public interface IBlock
@@ -5,5 +7,13 @@ namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors
         bool CanHarmPlayers();
         bool IsSolid();
         bool IsLiquid();
+
+        string Material();
+
+        string Property(string name);
+
+        int Id();
+
+        Dictionary<string, string> Properties();
     }
 }

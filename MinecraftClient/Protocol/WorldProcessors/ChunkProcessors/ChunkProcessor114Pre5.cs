@@ -19,9 +19,8 @@ namespace MinecraftClient.Protocol.WorldProcessors.ChunkProcessors
 
                 var blockCount = PacketUtils.readNextShort(data.Cache);
                 var bitsPerBlock = PacketUtils.readNextByte(data.Cache);
-                var palette = PacketUtils.readNextVarIntArray(data.Cache);
-                
-                var blockData = PacketUtils.readNextULongArray(data.Cache);
+                var palette = new int[0];
+
 
                 var isGlobalPalette = false;
                 if (bitsPerBlock < 4)
@@ -35,8 +34,14 @@ namespace MinecraftClient.Protocol.WorldProcessors.ChunkProcessors
                     bitsPerBlock = 14;
                 }
 
-                var valueMask = (uint) ((1 << bitsPerBlock) - 1);
+                if (!isGlobalPalette)
+                {
+                    palette = PacketUtils.readNextVarIntArray(data.Cache);
+                }
 
+
+                var blockData = PacketUtils.readNextULongArray(data.Cache);
+                var valueMask = (uint) ((1 << bitsPerBlock) - 1);
                 var chunk = new Chunk();
 
                 if (blockData.Length <= 0)
@@ -65,7 +70,7 @@ namespace MinecraftClient.Protocol.WorldProcessors.ChunkProcessors
                             {
                                 int endOffset = 64 - startOffset;
                                 blockId = (short) ((blockData[startLong] >> startOffset |
-                                                     blockData[endLong] << endOffset) & valueMask);
+                                                    blockData[endLong] << endOffset) & valueMask);
                             }
 
                             if (!isGlobalPalette)

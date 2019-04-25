@@ -26,8 +26,8 @@ namespace MinecraftClient.Protocol.Packets.Inbound.BlockChange
         protected override Location LocationFromLong(long val)
         {
             var x = (int) (val >> 38);
-            var y = (int) (val >> 26 & 0xFFF);
-            var z = (int) ((val << 38 >> 38) >> 12);
+            var y = (int) (val & 0xFFF);
+            var z = (int) (val << 26 >> 38);
             if (x >= 33554432)
                 x -= 67108864;
             if (y >= 2048)

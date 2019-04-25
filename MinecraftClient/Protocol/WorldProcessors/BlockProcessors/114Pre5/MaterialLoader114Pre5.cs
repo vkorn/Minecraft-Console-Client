@@ -1,12 +1,86 @@
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
+using System.Text;
+using DotNet.Globbing;
 using Newtonsoft.Json;
 
-namespace MaterialGenerator._114Pre5
+namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors._114Pre5
 {
-    public class Rules114Pre5 : IRules
+    internal class MaterialLoader114Pre5 : MaterialLoader
     {
-        public Dictionary<Material, List<string>> Rules()
+        protected override string ResourceName => "blocks114Pre5.json.zip";
+
+        private Dictionary<int, MaterialRepresentation> _materials;
+
+        public MaterialRepresentation GetMaterial(int id)
+        {
+            if (!_materials.TryGetValue(id, out var mat))
+            {
+                mat = new MaterialRepresentation
+                {
+                    Id = id,
+                    Name = "unknown",
+                    Properties = new Dictionary<string, string>(),
+                    Material = Material.Unknown,
+                };
+            }
+
+            return mat;
+        }
+
+        protected override void ProcessData(MemoryStream ms)
+        {
+            _materials = new Dictionary<int, MaterialRepresentation>();
+            
+            var res = JsonConvert.DeserializeObject<Dictionary<string, JsonBlockObject>>(
+                Encoding.UTF8.GetString(ms.ToArray()));
+
+            var globs = new Dictionary<Material, List<Glob>>();
+
+            foreach (var rule in Rules())
+            {
+                globs.Add(rule.Key, new List<Glob>());
+
+                foreach (var g in rule.Value)
+                {
+                    globs[rule.Key].Add(Glob.Parse(g));
+                }
+            }
+
+            foreach (var jsonBlockObject in res)
+            {
+                foreach (var jsonBlockObjectState in jsonBlockObject.Value.States)
+                {
+                    var matR = new MaterialRepresentation
+                    {
+                        Material = Material.Unknown,
+                        Name = jsonBlockObject.Key.Substring("minecraft:".Length),
+                        Properties = jsonBlockObjectState.Properties
+                    };
+
+                    var found = false;
+
+                    foreach (var g in globs)
+                    {
+                        if (found) break;
+
+                        foreach (var glob in g.Value)
+                        {
+                            if (glob.IsMatch(matR.Name))
+                            {
+                                found = true;
+                                matR.Material = g.Key;
+                                break;
+                            }
+                        }
+                    }
+
+                    _materials.Add(jsonBlockObjectState.Id, matR);
+                }
+            }
+        }
+
+        private Dictionary<Material, List<string>> Rules()
         {
             return new Dictionary<Material, List<string>>
             {
@@ -86,19 +160,6 @@ namespace MaterialGenerator._114Pre5
                     }
                 }
             };
-        }
-
-        public Dictionary<string, List<int>> GetFromFile(string data)
-        {
-            var rawData = JsonConvert.DeserializeObject<Dictionary<string, DataObject>>(data);
-
-            var res = new Dictionary<string, List<int>>();
-            foreach (var o in rawData)
-            {
-                res.Add(o.Key.Substring("minecraft:".Length), o.Value.States.Select(x => x.Id).ToList());
-            }
-
-            return res;
         }
     }
 }

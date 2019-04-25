@@ -11,6 +11,7 @@ namespace MinecraftClient.Protocol.Packets.Outbound
         TabComplete = 6,
         PlayerPosition = 7,
         PlayerPositionAndLook = 8,
-        TeleportConfirm = 9
+        TeleportConfirm = 9,
+        UseEntity = 10,
     }
 }
