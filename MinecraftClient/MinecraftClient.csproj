@@ -451,12 +451,6 @@
     <EmbeddedResource Include="Resources\blocks114Pre5.json.zip" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Submodules\fNbt\fNbt\fNbt.csproj">
-      <Project>{4488498d-976d-4da3-bf72-109531af0488}</Project>
-      <Name>fNbt</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

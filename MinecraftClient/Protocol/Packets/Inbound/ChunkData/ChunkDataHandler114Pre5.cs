@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.IO;
-using fNbt;
 using MinecraftClient.Protocol.Handlers;
 
 namespace MinecraftClient.Protocol.Packets.Inbound.ChunkData
@@ -10,12 +8,23 @@ namespace MinecraftClient.Protocol.Packets.Inbound.ChunkData
         protected override int MinVersion => PacketUtils.MC114pre5Version;
         protected override int PacketId => 0x21;
 
-        protected override byte[] ReadHeightMap(List<byte> packetData)
+        protected override void SkipHeightMap(List<byte> packetData)
         {
-            var cp = packetData.ToArray();
-            var nbt = new NbtFile();
-            var read = nbt.LoadFromStream(new MemoryStream(cp), NbtCompression.AutoDetect);
-            return PacketUtils.readData((int)read, packetData);
+            PacketUtils.readNextByte(packetData); // TAG_Compound
+            var nameLength = PacketUtils.readNextShort(packetData);
+            PacketUtils.readData(nameLength, packetData); // Compound name
+
+            var tag = PacketUtils.readNextByte(packetData); // Array
+
+            while (tag != 0)
+            {
+                nameLength = PacketUtils.readNextShort(packetData);
+                PacketUtils.readData(nameLength, packetData); // Array name
+                var itemsCount = PacketUtils.readNextInt(packetData);
+                PacketUtils.readData(8 * itemsCount, packetData);
+
+                tag = PacketUtils.readNextByte(packetData);
+            }
         }
     }
 }

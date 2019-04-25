@@ -21,7 +21,7 @@ namespace MinecraftClient.Protocol.Packets.Inbound.ChunkData
             var chunksContinuous = PacketUtils.readNextBool(packetData);
 
             var chunkMask = ReadChunkMask(packetData);
-            ReadHeightMap(packetData);
+            SkipHeightMap(packetData);
 
             var res = ReadChunkResult(protocol, packetData);
             res.ChunkX = chunkX;
@@ -37,9 +37,8 @@ namespace MinecraftClient.Protocol.Packets.Inbound.ChunkData
             return PacketUtils.readNextUShort(packetData);
         }
 
-        protected virtual byte[] ReadHeightMap(List<byte> packetData)
+        protected virtual void SkipHeightMap(List<byte> packetData)
         {
-            return new byte[0];
         }
 
         protected virtual ChunkDataResult ReadChunkResult(IProtocol protocol, List<byte> packetData)
