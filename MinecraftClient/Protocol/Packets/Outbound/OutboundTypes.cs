@@ -12,6 +12,9 @@ namespace MinecraftClient.Protocol.Packets.Outbound
         PlayerPosition = 7,
         PlayerPositionAndLook = 8,
         TeleportConfirm = 9,
-        UseEntity = 10,
+        HeldItemChange = 10,
+        UseItem = 11,
+        ConfirmTransaction = 12,
+        ClickWindow = 13,
     }
 }

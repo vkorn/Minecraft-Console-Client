@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using MinecraftClient.Inventory;
 using MinecraftClient.Mapping;
 
 namespace MinecraftClient.Protocol
@@ -25,6 +26,7 @@ namespace MinecraftClient.Protocol
         Dictionary<string, string> GetOnlinePlayersWithUUID();
         Location GetCurrentLocation();
         World GetWorld();
+        Player GetPlayer();
 
         /// <summary>
         /// Called when a server was successfully joined

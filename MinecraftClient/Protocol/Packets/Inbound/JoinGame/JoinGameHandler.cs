@@ -9,7 +9,7 @@ namespace MinecraftClient.Protocol.Packets.Inbound.JoinGame
     /// </summary>
     internal class JoinGameHandler : InboundGamePacketHandler
     {
-        protected override int MinVersion => 0;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.Zero;
         protected override int PacketId => 0x01;
         protected override InboundTypes PackageType => InboundTypes.JoinGame;
 

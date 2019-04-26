@@ -5,7 +5,7 @@ namespace MinecraftClient.Protocol.Packets.Inbound.JoinGame
 {
     internal class JoinGameHandler18 : JoinGameHandler
     {
-        protected override int MinVersion => PacketUtils.MC18Version;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.MC18;
 
 
         protected override bool ReadReducedDebugInfo(List<byte> packetData)

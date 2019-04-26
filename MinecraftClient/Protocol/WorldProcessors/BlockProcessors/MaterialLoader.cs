@@ -8,10 +8,10 @@ namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors
     {
         protected abstract string ResourceName { get; }
 
-        protected MaterialLoader()
+        protected MaterialLoader(ProtocolVersions minVersion)
         {
             using (var ms = Assembly.GetExecutingAssembly().GetManifestResourceStream(
-                $"MinecraftClient.Resources.{ResourceName}"))
+                $"MinecraftClient.Resources.{minVersion.ToString()}.{ResourceName}"))
             {
                 using (var zip = ZipFile.Read(ms))
                 {

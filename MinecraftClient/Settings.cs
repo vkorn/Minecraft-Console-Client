@@ -100,6 +100,10 @@ namespace MinecraftClient
         public static int AntiAFK_Delay = 600;
         public static string AntiAFK_Command = "/ping";
 
+        public static bool AntiHunger_Enabled = false;
+        public static bool AntiHunger_WatchHealth = true;
+        public static int AntiHunger_Threshold = 10;
+
         //Hangman Settings
         public static bool Hangman_Enabled = false;
         public static bool Hangman_English = true;
@@ -153,7 +157,8 @@ namespace MinecraftClient
         private static readonly Dictionary<string, KeyValuePair<string, string>> Accounts = new Dictionary<string, KeyValuePair<string, string>>();
         private static readonly Dictionary<string, KeyValuePair<string, ushort>> Servers = new Dictionary<string, KeyValuePair<string, ushort>>();
 
-        private enum ParseMode { Default, Main, AppVars, Proxy, MCSettings, AntiAFK, Hangman, Alerts, ChatLog, AutoRelog, ScriptScheduler, RemoteControl, ChatFormat, AutoRespond };
+        private enum ParseMode { Default, Main, AppVars, Proxy, MCSettings, AntiAFK, Hangman, Alerts,
+            ChatLog, AutoRelog, ScriptScheduler, RemoteControl, ChatFormat, AutoRespond, AntiHunger };
 
         /// <summary>
         /// Load settings from the give INI file
@@ -193,6 +198,7 @@ namespace MinecraftClient
                                     case "appvars": pMode = ParseMode.AppVars; break;
                                     case "autorespond": pMode = ParseMode.AutoRespond; break;
                                     case "chatformat": pMode = ParseMode.ChatFormat; break;
+                                    case "antihunger": pMode = ParseMode.AntiHunger;break;
                                     default: pMode = ParseMode.Default; break;
                                 }
                             }
@@ -341,7 +347,17 @@ namespace MinecraftClient
                                                 case "command": AntiAFK_Command = argValue == "" ? "/ping" : argValue; break;
                                             }
                                             break;
-
+                                        case ParseMode.AntiHunger:
+                                            switch (argName.ToLower())
+                                            {
+                                                case "enabled": AntiHunger_Enabled = str2bool(argValue);
+                                                    break;
+                                                case "watch_health": AntiHunger_WatchHealth = str2bool(argValue);
+                                                    break;
+                                                case "threshold": AntiHunger_Threshold = str2int(argValue);
+                                                    break;
+                                            }
+                                            break;
                                         case ParseMode.AutoRelog:
                                             switch (argName.ToLower())
                                             {

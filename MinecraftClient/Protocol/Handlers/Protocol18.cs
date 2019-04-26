@@ -16,10 +16,12 @@ using MinecraftClient.Protocol.Packets.Inbound.JoinGame;
 using MinecraftClient.Protocol.Packets.Outbound;
 using MinecraftClient.Protocol.Packets.Outbound.ChatMessage;
 using MinecraftClient.Protocol.Packets.Outbound.ClientSettings;
+using MinecraftClient.Protocol.Packets.Outbound.HeldItemChange;
 using MinecraftClient.Protocol.Packets.Outbound.PlayerPosition;
 using MinecraftClient.Protocol.Packets.Outbound.PlayerPositionAndLook;
 using MinecraftClient.Protocol.Packets.Outbound.PluginMessage;
 using MinecraftClient.Protocol.WorldProcessors.ChunkProcessors;
+using MinecraftClient.Protocol.WorldProcessors.DataConverters;
 
 namespace MinecraftClient.Protocol.Handlers
 {
@@ -68,32 +70,34 @@ namespace MinecraftClient.Protocol.Handlers
         private void initHandlers()
         {
             _inboundHandlers = VersionsFactory.InboundHandlers(protocolversion);
-            ConsoleIO.WriteLine("Loaded inbound handlers:");
+            ConsoleIO.WriteLineFormatted("Loaded inbound handlers:");
             foreach (var inboundGamePacketHandler in _inboundHandlers)
             {
-                ConsoleIO.WriteLineFormatted($"Type: {inboundGamePacketHandler.Value.Type()} " +
-                                             $"Implementation: {inboundGamePacketHandler.Value.GetType().Name}" +
-                                             $"Packet: 0x{inboundGamePacketHandler.Key:X2}");
+                ConsoleIO.WriteLine($"Type: {inboundGamePacketHandler.Value.Type()}    " +
+                                    $"Implementation: {inboundGamePacketHandler.Value.GetType().Name}    " +
+                                    $"Packet: 0x{inboundGamePacketHandler.Key:X2}");
             }
 
             _outboundPackets = VersionsFactory.OutboundHandlers(protocolversion);
 
-            ConsoleIO.WriteLine("Loaded outbound packets:");
+            ConsoleIO.WriteLineFormatted("Loaded outbound packets:");
             foreach (var outboundPacket in _outboundPackets)
             {
-                ConsoleIO.WriteLineFormatted($"Type: {outboundPacket.Value.Type()} " +
-                                             $"Implementation: {outboundPacket.Value.GetType().Name}" +
-                                             $"Packet: 0x{outboundPacket.Value.PacketId():X2}");
+                ConsoleIO.WriteLine($"Type: {outboundPacket.Value.Type()}    " +
+                                    $"Implementation: {outboundPacket.Value.GetType().Name}    " +
+                                    $"Packet: 0x{outboundPacket.Value.PacketId():X2}");
             }
 
             _chunkProcessor = VersionsFactory.WorldProcessor<IChunkProcessor>(protocolversion);
-            ConsoleIO.WriteLine("Loaded Chunk processor:");
-            ConsoleIO.WriteLineFormatted($"Version: {_chunkProcessor.MinVersion()} " +
-                                         $"Implementation: {_chunkProcessor.GetType().Name}");
+            ConsoleIO.WriteLineFormatted("Loaded Chunk processor:");
+            ConsoleIO.WriteLine($"Version: {_chunkProcessor.MinVersion()}    " +
+                                $"Implementation: {_chunkProcessor.GetType().Name}");
 
-            ConsoleIO.WriteLine("Loaded Block processor:");
-            ConsoleIO.WriteLineFormatted($"Version: {handler.GetWorld().BlockProcessor.MinVersion()} " +
-                                         $"Implementation: {handler.GetWorld().BlockProcessor.GetType().Name}");
+            ConsoleIO.WriteLineFormatted("Loaded Block processor:");
+            ConsoleIO.WriteLine($"Version: {handler.GetWorld().BlockProcessor.MinVersion()}    " +
+                                $"Implementation: {handler.GetWorld().BlockProcessor.GetType().Name}");
+
+            DataHelpers.Instance.Init(protocolversion);
         }
 
         private Protocol18Handler(TcpClient client)
@@ -202,7 +206,7 @@ namespace MinecraftClient.Protocol.Handlers
             packetData.AddRange(readDataRAW(size)); //Packet contents
 
             //Handle packet decompression
-            if (protocolversion >= PacketUtils.MC18Version
+            if (protocolversion >= (int) ProtocolVersions.MC18
                 && compression_treshold > 0)
             {
                 int sizeUncompressed = PacketUtils.readNextVarInt(packetData);
@@ -265,7 +269,7 @@ namespace MinecraftClient.Protocol.Handlers
                 switch (packetId) //Packet IDs are different while logging in
                 {
                     case 0x03:
-                        if (protocolversion >= PacketUtils.MC18Version)
+                        if (protocolversion >= (int) ProtocolVersions.MC18)
                             compression_treshold = PacketUtils.readNextVarInt(packetData);
                         break;
                     default:
@@ -1111,7 +1115,7 @@ namespace MinecraftClient.Protocol.Handlers
         /// <returns>Max length, in characters</returns>
         public int GetMaxChatMessageLength()
         {
-            return protocolversion >= PacketUtils.MC111Version
+            return protocolversion >= (int) ProtocolVersions.MC111
                 ? 256
                 : 100;
         }
@@ -1150,7 +1154,7 @@ namespace MinecraftClient.Protocol.Handlers
                 return false;
             // Plugin channels were significantly changed between Minecraft 1.12 and 1.13
             // https://wiki.vg/index.php?title=Pre-release_protocol&oldid=14132#Plugin_Channels
-            if (protocolversion >= PacketUtils.MC113Version)
+            if (protocolversion >= (int) ProtocolVersions.MC113)
             {
                 return SendPluginChannelPacket("minecraft:brand", PacketUtils.getString(brandInfo));
             }
@@ -1232,7 +1236,7 @@ namespace MinecraftClient.Protocol.Handlers
         {
             return SendPacketOut(OutboundTypes.PluginMessage, data, new PluginMessageRequest {Channel = channel});
         }
-
+        
         /// <summary>
         /// Disconnect from the server
         /// </summary>
@@ -1272,9 +1276,9 @@ namespace MinecraftClient.Protocol.Handlers
 
             byte[] tabcomplete_packet = new byte[] { };
 
-            if (protocolversion >= PacketUtils.MC18Version)
+            if (protocolversion >= (int) ProtocolVersions.MC18)
             {
-                if (protocolversion >= PacketUtils.MC17w46aVersion)
+                if (protocolversion >= (int) ProtocolVersions.MC17W46A)
                 {
                     tabcomplete_packet = PacketUtils.concatBytes(tabcomplete_packet, transaction_id);
                     tabcomplete_packet =
@@ -1285,7 +1289,7 @@ namespace MinecraftClient.Protocol.Handlers
                     tabcomplete_packet =
                         PacketUtils.concatBytes(tabcomplete_packet, PacketUtils.getString(BehindCursor));
 
-                    if (protocolversion >= PacketUtils.MC19Version)
+                    if (protocolversion >= (int) ProtocolVersions.MC19)
                     {
                         tabcomplete_packet = PacketUtils.concatBytes(tabcomplete_packet, assume_command);
                     }

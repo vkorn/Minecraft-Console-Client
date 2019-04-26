@@ -6,7 +6,7 @@ namespace MinecraftClient.Protocol.Packets.Inbound.PlayerPositionAndLook
 {
     internal class PlayerPositionAndLookHandler19 : PlayerPositionAndLookHandler18
     {
-        protected override int MinVersion => PacketUtils.MC19Version;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.MC19;
         protected override int PacketId => 0x2E;
 
         protected override void ConfirmTeleport(IProtocol protocol, List<byte> packetData)

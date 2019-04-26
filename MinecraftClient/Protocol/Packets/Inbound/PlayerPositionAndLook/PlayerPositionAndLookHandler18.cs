@@ -1,10 +1,8 @@
-using MinecraftClient.Protocol.Handlers;
-
 namespace MinecraftClient.Protocol.Packets.Inbound.PlayerPositionAndLook
 {
     internal class PlayerPositionAndLookHandler18 : PlayerPositionAndLookHandler
     {
-        protected override int MinVersion => PacketUtils.MC18Version;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.MC18;
         protected override void UpdateLocation(IMinecraftComHandler handler, double x, double y, double z, float yaw, float pitch, byte locMask)
         {
             var location = handler.GetCurrentLocation();

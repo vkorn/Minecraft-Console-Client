@@ -5,6 +5,8 @@ using System.Text;
 using System.IO;
 using System.Threading;
 using System.Text.RegularExpressions;
+using MinecraftClient.Inventory;
+using MinecraftClient.Protocol;
 
 namespace MinecraftClient
 {
@@ -27,6 +29,8 @@ namespace MinecraftClient
     /// </summary>
     public abstract class ChatBot
     {
+        public virtual ProtocolVersions MinVersion => ProtocolVersions.Zero;
+        
         public enum DisconnectReason { InGameKick, LoginRejected, ConnectionLost };
 
         //Handler will be automatically set on bot loading, don't worry about this
@@ -588,6 +592,11 @@ namespace MinecraftClient
             if (Settings.TerrainAndMovements)
                 return Handler.GetWorld();
             return null;
+        }
+
+        protected Player GetPlayer()
+        {
+            return Handler.GetPlayer();
         }
 
         /// <summary>

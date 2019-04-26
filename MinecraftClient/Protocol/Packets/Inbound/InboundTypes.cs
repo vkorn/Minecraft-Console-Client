@@ -18,6 +18,11 @@ namespace MinecraftClient.Protocol.Packets.Inbound
         KickPacket = 14,
         NetworkCompressionThreshold = 15,
         ResourcePackSend = 16,
+        UpdateHealth = 17,
+        WindowItems = 18,
+        HeldItemChange = 19,
+        SetSlot = 20,
+        ConfirmTransaction = 21,
         UnknownPacket = 0
     }
 }

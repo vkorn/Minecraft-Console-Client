@@ -1,4 +1,4 @@
-namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors._114Pre5
+namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors.MC114Pre5
 {
     public enum Material
     {

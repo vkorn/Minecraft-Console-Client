@@ -2,8 +2,6 @@ using System.Collections.Generic;
 using MinecraftClient.Mapping;
 using MinecraftClient.Protocol.Handlers;
 using MinecraftClient.Protocol.Packets.Inbound.ChunkData;
-using MinecraftClient.Protocol.WorldProcessors.BlockProcessors;
-using MinecraftClient.Protocol.WorldProcessors.BlockProcessors.Legacy;
 
 namespace MinecraftClient.Protocol.WorldProcessors.ChunkProcessors
 {
@@ -12,7 +10,7 @@ namespace MinecraftClient.Protocol.WorldProcessors.ChunkProcessors
     /// </summary>
     internal class ChunkProcessor17 : ChunkProcessor
     {
-        protected override int MinVersion => 0;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.Zero;
 
         public override void Process(IMinecraftComHandler handler, ChunkDataResult data)
         {

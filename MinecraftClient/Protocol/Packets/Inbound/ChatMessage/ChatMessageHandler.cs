@@ -10,7 +10,7 @@ namespace MinecraftClient.Protocol.Packets.Inbound.ChatMessage
     /// </summary>
     internal class ChatMessageHandler : InboundGamePacketHandler
     {
-        protected override int MinVersion => 0;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.Zero;
         protected override int PacketId => 0x02;
         protected override InboundTypes PackageType => InboundTypes.ChatMessage;
 

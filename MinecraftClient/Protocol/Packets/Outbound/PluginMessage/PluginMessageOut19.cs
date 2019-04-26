@@ -4,7 +4,7 @@ namespace MinecraftClient.Protocol.Packets.Outbound.PluginMessage
 {
     internal class PluginMessageOut19 : PluginMessageOut18
     {
-        protected override int MinVersion => PacketUtils.MC19Version;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.MC19;
         protected override int PacketId => 0x09;
     }
 }

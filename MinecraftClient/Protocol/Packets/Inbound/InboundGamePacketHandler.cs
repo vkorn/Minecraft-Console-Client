@@ -24,5 +24,10 @@ namespace MinecraftClient.Protocol.Packets.Inbound
         {
             return (int) PackageType;
         }
+
+        protected void SkipNbt(List<byte> packetData)
+        {
+            
+        }
     }
 }

@@ -4,9 +4,9 @@ namespace MinecraftClient.Protocol.WorldProcessors.ChunkProcessors
 {
     internal abstract class ChunkProcessor: IChunkProcessor
     {   
-        protected abstract int MinVersion { get; } 
+        protected abstract ProtocolVersions MinVersion { get; } 
         
-        int IWorldProcessor.MinVersion()
+        ProtocolVersions IWorldProcessor.MinVersion()
         {
             return MinVersion;
         }

@@ -5,7 +5,7 @@ namespace MinecraftClient.Protocol.Packets.Inbound.JoinGame
 {
     internal class JoinGameHandler114Pre5 : JoinGameHandler18W01A
     {
-        protected override int MinVersion =>PacketUtils.MC114pre5Version;
+        protected override ProtocolVersions MinVersion =>ProtocolVersions.MC114Pre5;
         
 
         protected override byte ReadDifficulty(List<byte> packetData)

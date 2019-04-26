@@ -7,7 +7,7 @@ namespace MinecraftClient.Protocol.Packets.Inbound.MultiBlockChange
 {
     internal class MultiBlockChangeHandler : InboundGamePacketHandler
     {
-        protected override int MinVersion => 0;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.Zero;
         protected override int PacketId => 0x22;
         protected override InboundTypes PackageType => InboundTypes.MultiBlockChange;
 

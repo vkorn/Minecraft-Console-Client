@@ -7,7 +7,7 @@ namespace MinecraftClient.Protocol.WorldProcessors.ChunkProcessors
 {
     internal class ChunkProcessor18 : ChunkProcessor
     {
-        protected override int MinVersion => PacketUtils.MC18Version;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.MC18;
 
         public override void Process(IMinecraftComHandler handler, ChunkDataResult data)
         {

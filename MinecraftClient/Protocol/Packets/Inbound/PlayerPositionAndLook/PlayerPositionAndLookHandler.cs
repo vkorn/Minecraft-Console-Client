@@ -10,7 +10,7 @@ namespace MinecraftClient.Protocol.Packets.Inbound.PlayerPositionAndLook
     /// </summary>
     internal class PlayerPositionAndLookHandler : InboundGamePacketHandler
     {
-        protected override int MinVersion => 0;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.Zero;
         protected override int PacketId => 0x08;
         protected override InboundTypes PackageType => InboundTypes.PlayerPositionAndLook;
 

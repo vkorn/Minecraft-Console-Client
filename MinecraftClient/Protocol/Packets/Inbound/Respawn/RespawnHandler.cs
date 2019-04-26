@@ -9,7 +9,7 @@ namespace MinecraftClient.Protocol.Packets.Inbound.Respawn
     /// </summary>
     internal class RespawnHandler : InboundGamePacketHandler
     {
-        protected override int MinVersion => 0;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.Zero;
         protected override int PacketId => 0x07;
         protected override InboundTypes PackageType => InboundTypes.Respawn;
 

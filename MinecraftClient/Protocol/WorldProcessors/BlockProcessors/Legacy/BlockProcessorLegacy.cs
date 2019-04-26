@@ -4,7 +4,7 @@ namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors.Legacy
 {
     internal class BlockProcessorLegacy : BlockProcessor
     {
-        protected override int MinVersion => 0;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.Zero;
 
         public override IBlock CreateBlock(short blockId)
         {

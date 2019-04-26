@@ -2,7 +2,7 @@ namespace MinecraftClient.Protocol.Packets
 {
     internal interface IGamePacketHandler
     {
-        int MinVersion();
+        ProtocolVersions MinVersion();
 
         int PacketId();
 

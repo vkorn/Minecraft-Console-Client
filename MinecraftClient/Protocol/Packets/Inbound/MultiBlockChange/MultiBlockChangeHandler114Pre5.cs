@@ -5,7 +5,7 @@ namespace MinecraftClient.Protocol.Packets.Inbound.MultiBlockChange
 {
     internal class MultiBlockChangeHandler114Pre5 : MultiBlockChangeHandler17W31A
     {
-        protected override int MinVersion => PacketUtils.MC114pre5Version;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.MC114Pre5;
 
         protected override void UpdateBlock(IMinecraftComHandler handler, int chunkX,
             int chunkZ, ushort blockIdMeta, ushort blockY,

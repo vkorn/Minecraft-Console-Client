@@ -5,7 +5,7 @@ namespace MinecraftClient.Protocol.Packets.Outbound.PlayerPositionAndLook
 {
     internal class PlayerPositionAndLookOut : OutboundGamePacket
     {
-        protected override int MinVersion => 0;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.Zero;
         protected override int PacketId => 0x06;
         protected override OutboundTypes PackageType => OutboundTypes.PlayerPositionAndLook;
 

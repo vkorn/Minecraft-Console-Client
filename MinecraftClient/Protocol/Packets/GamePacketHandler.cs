@@ -2,10 +2,10 @@ namespace MinecraftClient.Protocol.Packets
 {
     internal abstract class GamePacketHandler : IGamePacketHandler
     {
-        protected abstract int MinVersion { get; }
+        protected abstract ProtocolVersions MinVersion { get; }
         protected abstract int PacketId { get; }
 
-        int IGamePacketHandler.MinVersion()
+        ProtocolVersions IGamePacketHandler.MinVersion()
         {
             return MinVersion;
         }

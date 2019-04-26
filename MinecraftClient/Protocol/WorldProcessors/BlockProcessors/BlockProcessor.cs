@@ -2,9 +2,9 @@ namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors
 {
     internal abstract class BlockProcessor : IBlockProcessor
     {
-        protected abstract int MinVersion { get; }
+        protected abstract ProtocolVersions MinVersion { get; }
 
-        int IWorldProcessor.MinVersion()
+        ProtocolVersions IWorldProcessor.MinVersion()
         {
             return MinVersion;
         }

@@ -42,7 +42,7 @@ namespace MinecraftClient.Protocol
                     allHandlers.Add(i.PacketIntType(), typeHandlers);
                 }
 
-                typeHandlers.Add(i.MinVersion(), i);
+                typeHandlers.Add((int)i.MinVersion(), i);
             }
 
             var latestHandlers = new Dictionary<int, T>();
@@ -69,7 +69,7 @@ namespace MinecraftClient.Protocol
                 .Where(x => x.GetInterfaces().Contains(typeof(T)) && !x.IsAbstract))
             {
                 var i = (T) Activator.CreateInstance(t);
-                allHandlers.Add(i.MinVersion(), i);
+                allHandlers.Add((int)i.MinVersion(), i);
             }
 
             foreach (var handler in allHandlers.OrderByDescending(x => x.Key))

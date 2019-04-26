@@ -1,5 +1,6 @@
 ﻿using System;
 using MinecraftClient.Mapping;
+using MinecraftClient.Protocol.Packets;
 
 namespace MinecraftClient.Protocol
 {
@@ -10,7 +11,7 @@ namespace MinecraftClient.Protocol
     /// The protocol handler will take care of parsing and building the appropriate network packets.
     /// </summary>
 
-    public interface IMinecraftCom : IDisposable, IAutoComplete
+    public interface IMinecraftCom : IDisposable, IAutoComplete, IProtocol
     {
         /// <summary>
         /// Start the login procedure once connected to the server

@@ -6,7 +6,7 @@ namespace MinecraftClient.Protocol.Packets.Inbound.BlockChange
 {
     internal class BlockChangeHandler : InboundGamePacketHandler
     {
-        protected override int MinVersion => 0;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.Zero;
         protected override int PacketId => 0x22;
         protected override InboundTypes PackageType => InboundTypes.BlockChange;
 

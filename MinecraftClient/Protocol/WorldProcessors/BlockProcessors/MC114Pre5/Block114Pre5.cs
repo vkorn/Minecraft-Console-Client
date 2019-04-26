@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors._114Pre5
+namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors.MC114Pre5
 {
     internal class Block114Pre5 : IBlock
     {

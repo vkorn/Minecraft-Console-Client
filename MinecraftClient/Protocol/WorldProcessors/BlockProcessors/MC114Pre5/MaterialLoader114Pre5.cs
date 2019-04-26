@@ -4,11 +4,11 @@ using System.Text;
 using DotNet.Globbing;
 using Newtonsoft.Json;
 
-namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors._114Pre5
+namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors.MC114Pre5
 {
     internal class MaterialLoader114Pre5 : MaterialLoader
     {
-        protected override string ResourceName => "blocks114Pre5.json.zip";
+        protected override string ResourceName => "blocks.json.zip";
 
         private Dictionary<int, MaterialRepresentation> _materials;
 
@@ -31,7 +31,7 @@ namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors._114Pre5
         protected override void ProcessData(MemoryStream ms)
         {
             _materials = new Dictionary<int, MaterialRepresentation>();
-            
+
             var res = JsonConvert.DeserializeObject<Dictionary<string, JsonBlockObject>>(
                 Encoding.UTF8.GetString(ms.ToArray()));
 
@@ -160,6 +160,10 @@ namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors._114Pre5
                     }
                 }
             };
+        }
+
+        public MaterialLoader114Pre5(ProtocolVersions minVersion) : base(minVersion)
+        {
         }
     }
 }

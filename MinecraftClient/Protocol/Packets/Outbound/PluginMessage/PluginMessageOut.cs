@@ -7,7 +7,7 @@ namespace MinecraftClient.Protocol.Packets.Outbound.PluginMessage
 {
     internal class PluginMessageOut : OutboundGamePacket
     {
-        protected override int MinVersion => 0;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.Zero;
         protected override int PacketId => 0x17;
         protected override OutboundTypes PackageType => OutboundTypes.PluginMessage;
 
@@ -18,17 +18,6 @@ namespace MinecraftClient.Protocol.Packets.Outbound.PluginMessage
             Array.Reverse(length);
 
             return PacketUtils.concatBytes(PacketUtils.getString(((PluginMessageRequest) data).Channel), length, dataA);
-        }
-    }
-
-    internal class PluginMessageOut18 : PluginMessageOut
-    {
-        protected override int MinVersion => PacketUtils.MC18Version;
-
-        public override IEnumerable<byte> TransformData(IEnumerable<byte> packetData, IOutboundRequest data)
-        {
-            return PacketUtils.concatBytes(PacketUtils.getString(((PluginMessageRequest) data).Channel),
-                packetData.ToArray());
         }
     }
 }

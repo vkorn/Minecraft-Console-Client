@@ -89,6 +89,7 @@
     <Compile Include="AutoTimeout.cs" />
     <Compile Include="ChatBots\Alerts.cs" />
     <Compile Include="ChatBots\AntiAFK.cs" />
+    <Compile Include="ChatBots\AntiHunger.cs" />
     <Compile Include="ChatBots\AutoRespond.cs" />
     <Compile Include="ChatBots\AutoRelog.cs" />
     <Compile Include="ChatBots\ChatLog.cs" />
@@ -102,6 +103,7 @@
     <Compile Include="Command.cs" />
     <Compile Include="Commands\Connect.cs" />
     <Compile Include="Commands\Debug.cs" />
+    <Compile Include="Commands\Hold.cs" />
     <Compile Include="Commands\Inspect.cs" />
     <Compile Include="Commands\Look.cs" />
     <Compile Include="Commands\Move.cs" />
@@ -113,7 +115,23 @@
     <Compile Include="Commands\Script.cs" />
     <Compile Include="Commands\Send.cs" />
     <Compile Include="Commands\Set.cs" />
+    <Compile Include="Commands\Status.cs" />
+    <Compile Include="Commands\Swap.cs" />
+    <Compile Include="Commands\Use.cs" />
+    <Compile Include="Inventory\ItemSlot.cs" />
+    <Compile Include="Inventory\Player.cs" />
+    <Compile Include="Protocol\Packets\Inbound\ConfirmTransaction\ConfirmTransactionHandler114Pre5.cs" />
+    <Compile Include="Protocol\Packets\Inbound\HeldItemChange\HeldItemChangeHandler114Pre5.cs" />
     <Compile Include="Protocol\Packets\Inbound\MultiBlockChange\MultiBlockChangeHandler114Pre5.cs" />
+    <Compile Include="Protocol\Packets\Inbound\SetSlot\SetSlotHandler114Pre5.cs" />
+    <Compile Include="Protocol\Packets\Inbound\UpdateHealth\UpdateHealthHandler114Pre5.cs" />
+    <Compile Include="Protocol\Packets\Inbound\WindowItems\WindowItemsHandler114Pre5.cs" />
+    <Compile Include="Protocol\Packets\NbtNoop.cs" />
+    <Compile Include="Protocol\Packets\Outbound\ClickWindow\ClickWindowOut114Pre5.cs" />
+    <Compile Include="Protocol\Packets\Outbound\ClickWindow\ClickWindowRequest.cs" />
+    <Compile Include="Protocol\Packets\Outbound\ConfirmTransaction\ConfirmTransactionOut114Pre5.cs" />
+    <Compile Include="Protocol\Packets\Outbound\HeldItemChange\HeldItemChangeOut114Pre5.cs" />
+    <Compile Include="Protocol\Packets\Outbound\HeldItemChange\HeldItemChangeRequest.cs" />
     <Compile Include="Protocol\Packets\Outbound\PlayerPositionAndLook\PlayerPositionAndLookOut.cs" />
     <Compile Include="Protocol\Packets\Outbound\PlayerPositionAndLook\PlayerPositionAndLookOut112Pre5.cs" />
     <Compile Include="Protocol\Packets\Outbound\PlayerPositionAndLook\PlayerPositionAndLookOut113Pre4.cs" />
@@ -138,6 +156,9 @@
     <Compile Include="Protocol\Packets\Outbound\PlayerPosition\PlayerPositionOut18.cs" />
     <Compile Include="Protocol\Packets\Outbound\PlayerPosition\PlayerPositionOut19.cs" />
     <Compile Include="Protocol\Packets\Outbound\PlayerPosition\PlayerPositionRequest.cs" />
+    <Compile Include="Protocol\Packets\Outbound\PluginMessage\PluginMessageOut18.cs" />
+    <Compile Include="Protocol\Packets\Outbound\UseItem\UseItemOut114Pre5.cs" />
+    <Compile Include="Protocol\ProtocolVersions.cs" />
     <Compile Include="Protocol\VersionsFactory.cs" />
     <Compile Include="Protocol\Packets\GamePacketHandler.cs" />
     <Compile Include="Protocol\Packets\IGamePacketHandler.cs" />
@@ -271,13 +292,13 @@
     <Compile Include="Protocol\Packets\Outbound\KeepAlive\KeepAliveOut19.cs" />
     <Compile Include="Protocol\Packets\Outbound\OutboundGamePacket.cs" />
     <Compile Include="Protocol\Packets\Outbound\OutboundTypes.cs" />
-    <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\Block114Pre5.cs" />
-    <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\BlockProcessor114Pre5.cs" />
-    <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\JsonBlockObject.cs" />
-    <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\JsonBlockObjectState.cs" />
-    <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\Material.cs" />
-    <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\MaterialLoader114Pre5.cs" />
-    <Compile Include="Protocol\WorldProcessors\BlockProcessors\114Pre5\MaterialRepresentation.cs" />
+    <Compile Include="Protocol\WorldProcessors\BlockProcessors\MC114Pre5\Block114Pre5.cs" />
+    <Compile Include="Protocol\WorldProcessors\BlockProcessors\MC114Pre5\BlockProcessor114Pre5.cs" />
+    <Compile Include="Protocol\WorldProcessors\BlockProcessors\MC114Pre5\JsonBlockObject.cs" />
+    <Compile Include="Protocol\WorldProcessors\BlockProcessors\MC114Pre5\JsonBlockObjectState.cs" />
+    <Compile Include="Protocol\WorldProcessors\BlockProcessors\MC114Pre5\Material.cs" />
+    <Compile Include="Protocol\WorldProcessors\BlockProcessors\MC114Pre5\MaterialLoader114Pre5.cs" />
+    <Compile Include="Protocol\WorldProcessors\BlockProcessors\MC114Pre5\MaterialRepresentation.cs" />
     <Compile Include="Protocol\WorldProcessors\BlockProcessors\BlockProcessor.cs" />
     <Compile Include="Protocol\WorldProcessors\BlockProcessors\IBlock.cs" />
     <Compile Include="Protocol\WorldProcessors\BlockProcessors\IBlockProcessor.cs" />
@@ -291,7 +312,22 @@
     <Compile Include="Protocol\WorldProcessors\ChunkProcessors\ChunkProcessor18.cs" />
     <Compile Include="Protocol\WorldProcessors\ChunkProcessors\ChunkProcessor19.cs" />
     <Compile Include="Protocol\WorldProcessors\ChunkProcessors\IChunkProcessor.cs" />
+    <Compile Include="Protocol\WorldProcessors\DataConverters\DataConverters.cs" />
+    <Compile Include="Protocol\WorldProcessors\DataConverters\Location\ILocation.cs" />
+    <Compile Include="Protocol\WorldProcessors\DataConverters\Location\LocationConverter.cs" />
+    <Compile Include="Protocol\WorldProcessors\DataConverters\Location\LocationConverter114Pre5.cs" />
+    <Compile Include="Protocol\WorldProcessors\DataConverters\Location\LocationConverter18.cs" />
     <Compile Include="Protocol\WorldProcessors\IWorldProcessor.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\IItem.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\Item.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\ItemAttributes.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\MC114Pre5\Item.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\MC114Pre5\RegistryEntriesList.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\MC114Pre5\RegistryEntry.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\MC114Pre5\RegistryProcessor114Pre5.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\IRegistryProcessor.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\RegistryProcessor.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\RegistryProcessorDummy.cs" />
     <Compile Include="WinAPI\ConsoleIcon.cs" />
     <Compile Include="ConsoleIO.cs" />
     <Compile Include="Crypto\Streams\BouncyAes\AesFastEngine.cs" />
@@ -448,7 +484,8 @@
   <ItemGroup>
     <Content Include="Protocol\Dns\Records\totla.txt" />
     <Content Include="Resources\AppIcon.ico" />
-    <EmbeddedResource Include="Resources\blocks114Pre5.json.zip" />
+    <EmbeddedResource Include="Resources\MC114Pre5\blocks.json.zip" />
+    <EmbeddedResource Include="Resources\MC114Pre5\registries.json.zip" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

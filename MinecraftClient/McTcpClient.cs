@@ -5,6 +5,8 @@ using System.Text;
 using System.Net.Sockets;
 using System.Threading;
 using System.IO;
+using MinecraftClient.ChatBots;
+using MinecraftClient.Inventory;
 using MinecraftClient.Protocol;
 using MinecraftClient.Proxy;
 using MinecraftClient.Protocol.Handlers.Forge;
@@ -46,6 +48,9 @@ namespace MinecraftClient
         private string username;
         private string uuid;
         private string sessionid;
+        private int _protocolVersion;
+
+        private Player _player;
 
         public int GetServerPort()
         {
@@ -82,12 +87,18 @@ namespace MinecraftClient
             return world;
         }
 
+        public Player GetPlayer()
+        {
+            return _player;
+        }
+
         TcpClient client;
         IMinecraftCom handler;
         Thread cmdprompt;
 
         private McTcpClient(int protocolVersion)
         {
+            _protocolVersion = protocolVersion;
             world = new World(protocolVersion);
         }
 
@@ -194,6 +205,11 @@ namespace MinecraftClient
                         BotLoad(new ChatBots.AutoRespond(Settings.AutoRespond_Matches));
                     }
 
+                    if (Settings.AntiHunger_Enabled)
+                    {
+                        BotLoad(new AntiHunger(Settings.AntiHunger_WatchHealth, Settings.AntiHunger_Threshold));
+                    }
+
                     //Add your ChatBot here by uncommenting and adapting
                     //BotLoad(new ChatBots.YourBot());
                 }
@@ -204,6 +220,7 @@ namespace MinecraftClient
                 client = ProxyHandler.newTcpClient(host, port);
                 client.ReceiveBufferSize = 1024 * 1024;
                 handler = ProtocolHandler.GetProtocolHandler(client, protocolversion, forgeInfo, this);
+                _player = new Player(protocolversion, handler);
                 Console.WriteLine("Version is supported.\nLogging in...");
 
                 try
@@ -426,6 +443,11 @@ namespace MinecraftClient
         /// </summary>
         public void BotLoad(ChatBot b, bool init = true)
         {
+            if ((int) b.MinVersion > _protocolVersion)
+            {
+                return;
+            }
+
             b.SetHandler(this);
             bots.Add(b);
             if (init)
@@ -632,6 +654,8 @@ namespace MinecraftClient
         /// </summary>
         public void OnConnectionLost(ChatBot.DisconnectReason reason, string message)
         {
+            _player.Stop();
+
             bool will_restart = false;
 
             switch (reason)

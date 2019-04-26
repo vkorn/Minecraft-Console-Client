@@ -4,7 +4,7 @@ namespace MinecraftClient.Protocol.Packets.Outbound.ClientStatus
 {
     internal class ClientStatusOut : OutboundGamePacket
     {
-        protected override int MinVersion => 0;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.Zero;
         protected override int PacketId => 0x16;
         protected override OutboundTypes PackageType => OutboundTypes.ClientStatus;
 

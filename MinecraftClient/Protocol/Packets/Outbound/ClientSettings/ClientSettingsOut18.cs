@@ -5,7 +5,7 @@ namespace MinecraftClient.Protocol.Packets.Outbound.ClientSettings
 {
     internal class ClientSettingsOut18 : ClientSettingsOut
     {
-        protected override int MinVersion => PacketUtils.MC18Version;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.MC18;
 
         public override IEnumerable<byte> TransformData(IEnumerable<byte> packetData, IOutboundRequest data)
         {

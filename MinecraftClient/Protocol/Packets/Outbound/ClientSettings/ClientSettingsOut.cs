@@ -5,7 +5,7 @@ namespace MinecraftClient.Protocol.Packets.Outbound.ClientSettings
 {
     internal class ClientSettingsOut : OutboundGamePacket
     {
-        protected override int MinVersion => 0;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.Zero;
         protected override int PacketId => 0x15;
         protected override OutboundTypes PackageType => OutboundTypes.ClientSettings;
 

@@ -2,13 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Net.Sockets;
-using System.Threading;
-using MinecraftClient.Crypto;
-using MinecraftClient.Proxy;
-using System.Security.Cryptography;
-using MinecraftClient.Protocol.Handlers.Forge;
-using MinecraftClient.Mapping;
 
 namespace MinecraftClient.Protocol.Handlers
 {
@@ -17,24 +10,7 @@ namespace MinecraftClient.Protocol.Handlers
     /// </summary>
     public class PacketUtils
     {
-        public const int MC18Version = 47;
-        public const int MC19Version = 107;
-        public const int MC191Version = 108;
-        public const int MC110Version = 210;
-        public const int MC111Version = 315;
-        public const int MC17w13aVersion = 318;
-        public const int MC112pre5Version = 332;
-        public const int MC17w31aVersion = 336;
-        public const int MC17w45aVersion = 343;
-        public const int MC17w46aVersion = 345;
-        public const int MC17w47aVersion = 346;
-        public const int MC18w01aVersion = 352;
-        public const int MC18w06aVersion = 357;
-        public const int MC113pre4Version = 386;
-        public const int MC113pre7Version = 389;
-        public const int MC113Version = 393;
-        public const int MC114pre5Version = 476;
-
+        
         /// <summary>
         /// Read some data from a cache of bytes and remove it from the cache
         /// </summary>
@@ -180,7 +156,7 @@ namespace MinecraftClient.Protocol.Handlers
         /// <returns>The byte array</returns>
         public static byte[] readNextByteArray(int protocolversion, List<byte> cache)
         {
-            int len = protocolversion >= MC18Version
+            int len = protocolversion >= (int) ProtocolVersions.MC18
                 ? readNextVarInt(cache)
                 : readNextShort(cache);
             return readData(len, cache);
@@ -288,6 +264,18 @@ namespace MinecraftClient.Protocol.Handlers
         /// <summary>
         /// Build an integer for sending over the network
         /// </summary>
+        /// <param name="number">Integer to encode</param>
+        /// <returns>Byte array for this integer</returns>
+        public static byte[] getInt(int number)
+        {
+            byte[] theInt = BitConverter.GetBytes(number);
+            Array.Reverse(theInt); //Endianness
+            return theInt;
+        }
+    
+        /// <summary>
+        /// Build an variable integer for sending over the network
+        /// </summary>
         /// <param name="paramInt">Integer to encode</param>
         /// <returns>Byte array for this integer</returns>
         public static byte[] getVarInt(int paramInt)
@@ -316,13 +304,35 @@ namespace MinecraftClient.Protocol.Handlers
         }
 
         /// <summary>
+        /// Get byte array representing a short.
+        /// </summary>
+        /// <param name="number">Short to process</param>
+        /// <returns>Array ready to send</returns>
+        public static byte[] getShort(short number)
+        {
+            var theShort = BitConverter.GetBytes(number);
+            Array.Reverse(theShort);
+            return theShort;
+        }
+
+        /// <summary>
+        /// Get byte array representation for a boolean.
+        /// </summary>
+        /// <param name="val">Boolean to precess</param>
+        /// <returns>Array ready to send</returns>
+        public static byte[] getBool(bool val)
+        {
+            return new[] {(byte) (val ? 0x01 : 0x00)};
+        }
+
+        /// <summary>
         /// Get byte array with length information prepended to it
         /// </summary>
         /// <param name="array">Array to process</param>
         /// <returns>Array ready to send</returns>
         public static byte[] getArray(int protocolversion, byte[] array)
         {
-            if (protocolversion < MC18Version)
+            if (protocolversion < (int) ProtocolVersions.MC18)
             {
                 byte[] length = BitConverter.GetBytes((short) array.Length);
                 Array.Reverse(length);

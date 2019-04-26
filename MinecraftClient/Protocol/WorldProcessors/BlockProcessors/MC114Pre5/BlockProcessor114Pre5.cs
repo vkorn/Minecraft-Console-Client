@@ -1,6 +1,4 @@
-using MinecraftClient.Protocol.Handlers;
-
-namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors._114Pre5
+namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors.MC114Pre5
 {
     internal class BlockProcessor114Pre5 : BlockProcessor
     {
@@ -9,11 +7,11 @@ namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors._114Pre5
 
         public BlockProcessor114Pre5()
         {
-            _loader = new MaterialLoader114Pre5();
+            _loader = new MaterialLoader114Pre5(MinVersion);
         }
 
 
-        protected override int MinVersion => PacketUtils.MC114pre5Version;
+        protected override ProtocolVersions MinVersion => ProtocolVersions.MC114Pre5;
 
         public override IBlock CreateBlock(short blockId)
         {
