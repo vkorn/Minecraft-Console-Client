@@ -55,7 +55,7 @@ namespace MinecraftClient.Commands
                         int z = int.Parse(args[2]);
 
                         Location block = new Location(x, y, z);
-                        handler.UpdateLocation(handler.GetCurrentLocation(), block);
+                        handler.GetPlayer().LookAt(block);
 
                         return "Looking at " + block;
                     }

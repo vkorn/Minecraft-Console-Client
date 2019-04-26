@@ -1,6 +1,6 @@
 using MinecraftClient.Protocol.WorldProcessors.RegistryProcessors;
 
-namespace MinecraftClient.Inventory
+namespace MinecraftClient.Character
 {
     public class ItemSlot
     {

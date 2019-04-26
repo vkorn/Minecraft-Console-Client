@@ -77,9 +77,19 @@ namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors.Legacy
             return BlockId + (BlockMeta != 0 ? ":" + BlockMeta : "");
         }
 
+        public bool IsEmpty()
+        {
+            return Type == Mapping.Material.Air;
+        }
+
         public bool CanHarmPlayers()
         {
             return Type.CanHarmPlayers();
+        }
+
+        public bool CanUse()
+        {
+            return false;
         }
 
         public bool IsSolid()

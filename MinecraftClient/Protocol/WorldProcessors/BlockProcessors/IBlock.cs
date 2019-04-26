@@ -4,7 +4,12 @@ namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors
 {
     public interface IBlock
     {
+        bool IsEmpty();
+        
         bool CanHarmPlayers();
+
+        bool CanUse();
+        
         bool IsSolid();
         bool IsLiquid();
 

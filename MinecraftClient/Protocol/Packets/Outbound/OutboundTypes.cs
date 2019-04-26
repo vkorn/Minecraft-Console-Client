@@ -16,5 +16,6 @@ namespace MinecraftClient.Protocol.Packets.Outbound
         UseItem = 11,
         ConfirmTransaction = 12,
         ClickWindow = 13,
+        PlayerBlockPlacement = 14,
     }
 }

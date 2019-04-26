@@ -28,6 +28,7 @@ namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors
         }
 
         public abstract bool IsConsumable();
+        public abstract bool CanPlace();
         public abstract bool CanHarm();
     }
 }

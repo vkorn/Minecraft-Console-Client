@@ -11,10 +11,19 @@ namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors.MC114Pre5
             _mat = mat;
         }
 
+        public bool IsEmpty()
+        {
+            return _mat.Material == Material.Air;
+        }
 
         public bool CanHarmPlayers()
         {
             return _mat.Material == Material.CanHarm || _mat.Material == Material.Lava;
+        }
+
+        public bool CanUse()
+        {
+            return _mat.Material == Material.CanUse;
         }
 
         public bool IsSolid()

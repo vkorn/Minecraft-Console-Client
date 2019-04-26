@@ -302,6 +302,18 @@ namespace MinecraftClient.Protocol.Handlers
             Array.Reverse(theDouble); //Endianness
             return theDouble;
         }
+        
+        /// <summary>
+        /// Get byte array representing a long
+        /// </summary>
+        /// <param name="number">Long to process</param>
+        /// <returns>Array ready to send</returns>
+        public static byte[] getLong(long number)
+        {
+            byte[] theLong = BitConverter.GetBytes(number);
+            Array.Reverse(theLong); //Endianness
+            return theLong;
+        }
 
         /// <summary>
         /// Get byte array representing a short.

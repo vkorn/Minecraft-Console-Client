@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using MinecraftClient.Inventory;
+using MinecraftClient.Character;
 using MinecraftClient.Protocol.Handlers;
 
 namespace MinecraftClient.Protocol.Packets.Inbound.SetSlot

@@ -109,6 +109,7 @@
     <Compile Include="Commands\Move.cs" />
     <Compile Include="Commands\Exit.cs" />
     <Compile Include="Commands\Log.cs" />
+    <Compile Include="Commands\Place.cs" />
     <Compile Include="Commands\PositionedCommand.cs" />
     <Compile Include="Commands\Reco.cs" />
     <Compile Include="Commands\Respawn.cs" />
@@ -118,8 +119,10 @@
     <Compile Include="Commands\Status.cs" />
     <Compile Include="Commands\Swap.cs" />
     <Compile Include="Commands\Use.cs" />
-    <Compile Include="Inventory\ItemSlot.cs" />
-    <Compile Include="Inventory\Player.cs" />
+    <Compile Include="Character\ItemSlot.cs" />
+    <Compile Include="Character\Player.cs" />
+    <Compile Include="Protocol\Packets\BlockFaces.cs" />
+    <Compile Include="Protocol\Packets\Hands.cs" />
     <Compile Include="Protocol\Packets\Inbound\ConfirmTransaction\ConfirmTransactionHandler114Pre5.cs" />
     <Compile Include="Protocol\Packets\Inbound\HeldItemChange\HeldItemChangeHandler114Pre5.cs" />
     <Compile Include="Protocol\Packets\Inbound\MultiBlockChange\MultiBlockChangeHandler114Pre5.cs" />
@@ -132,6 +135,8 @@
     <Compile Include="Protocol\Packets\Outbound\ConfirmTransaction\ConfirmTransactionOut114Pre5.cs" />
     <Compile Include="Protocol\Packets\Outbound\HeldItemChange\HeldItemChangeOut114Pre5.cs" />
     <Compile Include="Protocol\Packets\Outbound\HeldItemChange\HeldItemChangeRequest.cs" />
+    <Compile Include="Protocol\Packets\Outbound\PlayerBlockPlacement\PlayerBlockPlacementOut114Pre5.cs" />
+    <Compile Include="Protocol\Packets\Outbound\PlayerBlockPlacement\PlayerBlockPlacementRequest.cs" />
     <Compile Include="Protocol\Packets\Outbound\PlayerPositionAndLook\PlayerPositionAndLookOut.cs" />
     <Compile Include="Protocol\Packets\Outbound\PlayerPositionAndLook\PlayerPositionAndLookOut112Pre5.cs" />
     <Compile Include="Protocol\Packets\Outbound\PlayerPositionAndLook\PlayerPositionAndLookOut113Pre4.cs" />

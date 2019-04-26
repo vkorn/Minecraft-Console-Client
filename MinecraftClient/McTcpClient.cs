@@ -5,8 +5,8 @@ using System.Text;
 using System.Net.Sockets;
 using System.Threading;
 using System.IO;
+using MinecraftClient.Character;
 using MinecraftClient.ChatBots;
-using MinecraftClient.Inventory;
 using MinecraftClient.Protocol;
 using MinecraftClient.Proxy;
 using MinecraftClient.Protocol.Handlers.Forge;
@@ -220,7 +220,7 @@ namespace MinecraftClient
                 client = ProxyHandler.newTcpClient(host, port);
                 client.ReceiveBufferSize = 1024 * 1024;
                 handler = ProtocolHandler.GetProtocolHandler(client, protocolversion, forgeInfo, this);
-                _player = new Player(protocolversion, handler);
+                _player = new Player(protocolversion, handler, this);
                 Console.WriteLine("Version is supported.\nLogging in...");
 
                 try

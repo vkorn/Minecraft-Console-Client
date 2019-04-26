@@ -16,6 +16,12 @@ namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors.MC114Pre5
             return Attributes.HasFlag(ItemAttributes.Consumable);
         }
 
+        public override bool CanPlace()
+        {
+            // TODO: Look carefully
+            return !Attributes.HasFlag(ItemAttributes.Consumable);
+        }
+
         public override bool CanHarm()
         {
             return Attributes.HasFlag(ItemAttributes.CanHarm);

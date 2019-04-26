@@ -1,17 +1,28 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using MinecraftClient.Mapping;
 using MinecraftClient.Protocol;
+using MinecraftClient.Protocol.Packets;
 using MinecraftClient.Protocol.Packets.Outbound;
 using MinecraftClient.Protocol.Packets.Outbound.ClickWindow;
 using MinecraftClient.Protocol.Packets.Outbound.HeldItemChange;
+using MinecraftClient.Protocol.Packets.Outbound.PlayerBlockPlacement;
 using MinecraftClient.Protocol.WorldProcessors.RegistryProcessors;
 
-namespace MinecraftClient.Inventory
+namespace MinecraftClient.Character
 {
+    public enum InventoryConstants
+    {
+        QuickBarMin = 36,
+        QuickBarMax = 44,
+        OffHand = 45,
+    }
+
     public class Player
     {
         private readonly IMinecraftCom _protocol;
+        private readonly IMinecraftComHandler _handler;
 
         public float Health { get; set; }
         public int Food { get; set; }
@@ -24,11 +35,12 @@ namespace MinecraftClient.Inventory
 
         public bool IsLoaded { get; private set; }
 
-        public Player(int protocolVersion, IMinecraftCom protocol)
+        public Player(int protocolVersion, IMinecraftCom protocol, IMinecraftComHandler handler)
         {
             Inventory = new Dictionary<short, ItemSlot>();
             RegistryProcessor = VersionsFactory.WorldProcessor<IRegistryProcessor>(protocolVersion);
             _protocol = protocol;
+            _handler = handler;
 
             ConsoleIO.WriteLineFormatted("Loaded Registries processor:");
             ConsoleIO.WriteLine($"Version: {RegistryProcessor.MinVersion()}    " +
@@ -155,6 +167,86 @@ namespace MinecraftClient.Inventory
             });
 
             return true;
+        }
+
+        public void LookAt(Location loc)
+        {
+            _handler.UpdateLocation(_handler.GetCurrentLocation(), loc);
+        }
+
+        public bool PlaceBlock(Location loc, Hands hand = Hands.Main, BlockFaces faceVector = BlockFaces.Top)
+        {
+            if (!Settings.TerrainAndMovements)
+            {
+                return false;
+            }
+
+            var block = _handler.GetWorld().GetBlock(loc);
+            if (block.IsEmpty() && !HasItem(ref hand))
+            {
+                ConsoleIO.WriteLineFormatted($"Can't place block at {loc.X}:{loc.Y}:{loc.Z} : empty handed");
+                return false;
+            }
+
+            if (!block.IsEmpty() && !block.CanUse())
+            {
+                ConsoleIO.WriteLineFormatted(
+                    $"Can't use block at {loc.X}:{loc.Y}:{loc.Z} : material is {block.Material()}");
+                return false;
+            }
+
+            LookAt(loc + new Location(0.5, 0.5, 0.5));
+            return _protocol.SendPacketOut(OutboundTypes.PlayerBlockPlacement, null,
+                new PlayerBlockPlacementRequest
+                {
+                    Hand = hand,
+                    Location = loc,
+                    CursorPosition = new Location(0.5, 0.5, 0.5),
+                    FaceVector = faceVector,
+                    IsInsideBlock = false,
+                });
+        }
+
+        private bool HasItem(ref Hands hand)
+        {
+            ItemSlot item;
+            switch (hand)
+            {
+                case Hands.Main:
+                    return HasMainHandItem();
+                case Hands.Offhand:
+                    return HasOffHandItem();
+                case Hands.Auto:
+                {
+                    if (HasMainHandItem())
+                    {
+                        hand = Hands.Main;
+                        return true;
+                    }
+
+                    if (HasOffHandItem())
+                    {
+                        hand = Hands.Offhand;
+                        return true;
+                    }
+
+                    return false;
+                }
+            }
+
+            return false;
+        }
+
+        private bool HasMainHandItem()
+        {
+            var itm = Inventory[(short) (InventoryConstants.QuickBarMin + ActiveSlot - 1)];
+            return itm != null && itm.Item.CanPlace();
+        }
+
+        private bool HasOffHandItem()
+        {
+            var itm = Inventory[(short) InventoryConstants.OffHand];
+            return itm != null && itm.Item.CanPlace();
         }
     }
 }

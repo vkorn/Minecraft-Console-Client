@@ -1,5 +1,3 @@
-using MinecraftClient.Protocol.Handlers;
-
 namespace MinecraftClient.Protocol.Packets.Outbound.PlayerPositionAndLook
 {
     internal class PlayerPositionAndLookOut114pre5 : PlayerPositionAndLookOut113Pre7

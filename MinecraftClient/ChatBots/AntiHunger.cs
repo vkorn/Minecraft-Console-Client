@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using MinecraftClient.Inventory;
+using MinecraftClient.Character;
 using MinecraftClient.Protocol;
 
 namespace MinecraftClient.ChatBots

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using MinecraftClient.Inventory;
+using MinecraftClient.Character;
 using MinecraftClient.Mapping;
 
 namespace MinecraftClient.Protocol

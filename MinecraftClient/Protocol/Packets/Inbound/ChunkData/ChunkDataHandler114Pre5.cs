@@ -10,21 +10,6 @@ namespace MinecraftClient.Protocol.Packets.Inbound.ChunkData
         protected override void SkipHeightMap(List<byte> packetData)
         {
             new NbtNoop(packetData).SkipTag();
-//            PacketUtils.readNextByte(packetData); // TAG_Compound
-//            var nameLength = PacketUtils.readNextShort(packetData);
-//            PacketUtils.readData(nameLength, packetData); // Compound name
-//
-//            var tag = PacketUtils.readNextByte(packetData); // Array
-//
-//            while (tag != 0)
-//            {
-//                nameLength = PacketUtils.readNextShort(packetData);
-//                PacketUtils.readData(nameLength, packetData); // Array name
-//                var itemsCount = PacketUtils.readNextInt(packetData);
-//                PacketUtils.readData(8 * itemsCount, packetData);
-//
-//                tag = PacketUtils.readNextByte(packetData);
-//            }
         }
     }
 }

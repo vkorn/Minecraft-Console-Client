@@ -1,4 +1,4 @@
-using MinecraftClient.Inventory;
+using MinecraftClient.Character;
 
 namespace MinecraftClient.Protocol.Packets.Outbound.ClickWindow
 {

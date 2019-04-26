@@ -8,6 +8,8 @@ namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors
 
         bool IsConsumable();
 
+        bool CanPlace();
+
         bool CanHarm();
 
         void SetNbt(byte[] nbt);
