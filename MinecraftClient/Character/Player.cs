@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -8,6 +9,7 @@ using MinecraftClient.Protocol.Packets.Outbound;
 using MinecraftClient.Protocol.Packets.Outbound.ClickWindow;
 using MinecraftClient.Protocol.Packets.Outbound.HeldItemChange;
 using MinecraftClient.Protocol.Packets.Outbound.PlayerBlockPlacement;
+using MinecraftClient.Protocol.Packets.Outbound.UseEntity;
 using MinecraftClient.Protocol.WorldProcessors.RegistryProcessors;
 
 namespace MinecraftClient.Character
@@ -23,6 +25,11 @@ namespace MinecraftClient.Character
     {
         private readonly IMinecraftCom _protocol;
         private readonly IMinecraftComHandler _handler;
+
+        private const int AttackCd = 999;
+        private long _lastAttack;
+
+        public Radar Radar { get; }
 
         public float Health { get; set; }
         public int Food { get; set; }
@@ -41,6 +48,8 @@ namespace MinecraftClient.Character
             RegistryProcessor = VersionsFactory.WorldProcessor<IRegistryProcessor>(protocolVersion);
             _protocol = protocol;
             _handler = handler;
+
+            Radar = new Radar(protocol, handler);
 
             ConsoleIO.WriteLineFormatted("Loaded Registries processor:");
             ConsoleIO.WriteLine($"Version: {RegistryProcessor.MinVersion()}    " +
@@ -209,7 +218,6 @@ namespace MinecraftClient.Character
 
         private bool HasItem(ref Hands hand)
         {
-            ItemSlot item;
             switch (hand)
             {
                 case Hands.Main:
@@ -247,6 +255,42 @@ namespace MinecraftClient.Character
         {
             var itm = Inventory[(short) InventoryConstants.OffHand];
             return itm != null && itm.Item.CanPlace();
+        }
+
+        public bool Attack(IMob mob)
+        {
+            if (mob.Position().DistanceSquared(_handler.GetCurrentLocation()) > 16) // radius 4
+            {
+                return false;
+            }
+
+            var now = DateTime.Now.Ticks;
+            if (now - _lastAttack < AttackCd * TimeSpan.TicksPerMillisecond)
+            {
+                return false;
+            }
+
+            _protocol.SendPacketOut(OutboundTypes.UseEntity, null, new UseEntityRequest
+            {
+                Type = UseEntityType.Attack,
+                EntityId = mob.Id()
+            });
+
+            _lastAttack = now;
+            return true;
+        }
+
+        public bool Attack(int id)
+        {
+            var mob = Radar.Get(id);
+
+            if (null == mob)
+            {
+                return false;
+            }
+
+
+            return Attack(mob);
         }
     }
 }

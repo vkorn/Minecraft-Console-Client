@@ -23,6 +23,11 @@ namespace MinecraftClient.Protocol.Packets.Inbound
         HeldItemChange = 19,
         SetSlot = 20,
         ConfirmTransaction = 21,
+        SpawnMob = 22,
+        EntityRelativeMove = 23, 
+        EntityLookAndRelativeMove = 24,
+        EntityTeleport = 25,
+        EntityStatus = 26,
         UnknownPacket = 0
     }
 }

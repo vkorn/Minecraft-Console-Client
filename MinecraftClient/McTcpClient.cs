@@ -210,6 +210,11 @@ namespace MinecraftClient
                         BotLoad(new AntiHunger(Settings.AntiHunger_WatchHealth, Settings.AntiHunger_Threshold));
                     }
 
+                    if (Settings.MobFarm_Enabled)
+                    {
+                        BotLoad(new MobFarm());
+                    }
+
                     //Add your ChatBot here by uncommenting and adapting
                     //BotLoad(new ChatBots.YourBot());
                 }

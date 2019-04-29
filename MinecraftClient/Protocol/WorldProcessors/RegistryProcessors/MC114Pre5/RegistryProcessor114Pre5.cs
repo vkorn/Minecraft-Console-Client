@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using DotNet.Globbing;
+using MinecraftClient.Mapping;
 using Newtonsoft.Json;
 
 namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors.MC114Pre5
@@ -9,6 +11,7 @@ namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors.MC114Pre5
     internal class RegistryProcessor114Pre5 : RegistryProcessor
     {
         protected Dictionary<int, Item> _items;
+        protected Dictionary<int, MobEntry> _entities;
 
         protected override ProtocolVersions MinVersion => ProtocolVersions.MC114Pre5;
         protected override string ResourceName => "registries.json.zip";
@@ -18,12 +21,63 @@ namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors.MC114Pre5
             return _items.TryGetValue(id, out var item) ? item : null;
         }
 
+        public override IMob GetEntity(int type, int id, Guid uuid, Location position)
+        {
+            if (!_entities.TryGetValue(type, out var entity))
+            {
+                return null;
+            }
+
+            return new Mob(entity, id, uuid, position);
+        }
+
         protected override void ProcessData(MemoryStream ms)
         {
             var res = JsonConvert.DeserializeObject<Dictionary<string, RegistryEntriesList>>(
                 Encoding.UTF8.GetString(ms.ToArray()));
 
             ProcessItems(res);
+            ProcessEntities(res);
+        }
+
+        protected virtual void ProcessEntities(Dictionary<string, RegistryEntriesList> entries)
+        {
+            _entities = new Dictionary<int, MobEntry>();
+            if (!entries.TryGetValue("minecraft:entity_type", out var entities))
+            {
+                return;
+            }
+
+            foreach (var entity in entities.Entries)
+            {
+                var name = entity.Key.Substring("minecraft:".Length);
+
+                foreach (var mobAttribute in _mobAttributes)
+                {
+                    var found = false;
+
+                    foreach (var attr in mobAttribute.Value)
+                    {
+                        if (string.Equals(attr, name))
+                        {
+                            found = true;
+                            _entities.Add(entity.Value.Id, new MobEntry
+                            {
+                                Name = name,
+                                Id = entity.Value.Id,
+                                Type = mobAttribute.Key,
+                            });
+
+                            break;
+                        }
+                    }
+
+                    if (found)
+                    {
+                        break;
+                    }
+                }
+            }
         }
 
         protected virtual void ProcessItems(Dictionary<string, RegistryEntriesList> entries)
@@ -83,6 +137,60 @@ namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors.MC114Pre5
                     ItemAttributes.CanHarm, new List<string>
                     {
                         "rotten_flesh", "pufferfish", "spider_eye", "suspicious_stew"
+                    }
+                }
+            };
+
+        private static readonly Dictionary<MobTypes, List<string>> _mobAttributes =
+            new Dictionary<MobTypes, List<string>>
+            {
+                {
+                    MobTypes.Entity, new List<string>
+                    {
+                        "armor_stand", "arrow", "experience_orb", "item", "item_frame"
+                    }
+                },
+                {
+                    MobTypes.Peaceful, new List<string>
+                    {
+                        "bat", "cat", "chicken", "cod", "cow", "dolphin", "fox", "panda", "parrot", "pig",
+                        "pufferfish", "polar_bear", "rabbit", "salmon", "sheep", "silverfish", "snow_golem", "squid",
+                        "trader_llama", "tropical_fish", "turtle", "villager", "iron_golem", "wandering_trader",
+                        "wolf"
+                    }
+                },
+                {
+                    MobTypes.Mob, new List<string>
+                    {
+                        "blaze", "cave_spider", "creeper", "drowned", "elder_guardian", "enderman",
+                        "endermite", "evoker", "ghast", "guardian", "husk", "illusioner", "magma_cube",
+                        "minecart", "zombie_pigman", "shulker", "skeleton", "slime", "spider", "stray",
+                        "vindicator", "pillager", "wither", "wither_skeleton", "zombie", "zombie_villager",
+                        "phantom", "ravager"
+                    }
+                },
+                {
+                    MobTypes.Bobber, new List<string>
+                    {
+                        "fishing_bobber"
+                    }
+                },
+                {
+                    MobTypes.Player, new List<string>
+                    {
+                        "player",
+                    }
+                },
+                {
+                    MobTypes.CanRide, new List<string>
+                    {
+                        "boat", "minecart"
+                    }
+                },
+                {
+                    MobTypes.Horseish, new List<string>
+                    {
+                        "llama", "mule", "horse", "donkey"
                     }
                 }
             };

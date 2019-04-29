@@ -87,6 +87,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AutoTimeout.cs" />
+    <Compile Include="Character\Radar.cs" />
     <Compile Include="ChatBots\Alerts.cs" />
     <Compile Include="ChatBots\AntiAFK.cs" />
     <Compile Include="ChatBots\AntiHunger.cs" />
@@ -94,6 +95,7 @@
     <Compile Include="ChatBots\AutoRelog.cs" />
     <Compile Include="ChatBots\ChatLog.cs" />
     <Compile Include="ChatBots\HangmanGame.cs" />
+    <Compile Include="ChatBots\MobFarm.cs" />
     <Compile Include="ChatBots\PlayerListLogger.cs" />
     <Compile Include="ChatBots\RemoteControl.cs" />
     <Compile Include="ChatBots\Script.cs" />
@@ -101,6 +103,7 @@
     <Compile Include="ChatBots\TestBot.cs" />
     <Compile Include="ChatBot.cs" />
     <Compile Include="Command.cs" />
+    <Compile Include="Commands\Attack.cs" />
     <Compile Include="Commands\Connect.cs" />
     <Compile Include="Commands\Debug.cs" />
     <Compile Include="Commands\Hold.cs" />
@@ -111,6 +114,7 @@
     <Compile Include="Commands\Log.cs" />
     <Compile Include="Commands\Place.cs" />
     <Compile Include="Commands\PositionedCommand.cs" />
+    <Compile Include="Commands\Radar.cs" />
     <Compile Include="Commands\Reco.cs" />
     <Compile Include="Commands\Respawn.cs" />
     <Compile Include="Commands\Script.cs" />
@@ -124,9 +128,14 @@
     <Compile Include="Protocol\Packets\BlockFaces.cs" />
     <Compile Include="Protocol\Packets\Hands.cs" />
     <Compile Include="Protocol\Packets\Inbound\ConfirmTransaction\ConfirmTransactionHandler114Pre5.cs" />
+    <Compile Include="Protocol\Packets\Inbound\EntityLookAndRelativeMove\EntityLookAndRelativeMoveHandler.cs" />
+    <Compile Include="Protocol\Packets\Inbound\EntityRelativeMove\EntityRelativeMoveHandler.cs" />
+    <Compile Include="Protocol\Packets\Inbound\EntityStatus\EntityStatusHandler.cs" />
+    <Compile Include="Protocol\Packets\Inbound\EntityTeleport\EntityTeleportHandler.cs" />
     <Compile Include="Protocol\Packets\Inbound\HeldItemChange\HeldItemChangeHandler114Pre5.cs" />
     <Compile Include="Protocol\Packets\Inbound\MultiBlockChange\MultiBlockChangeHandler114Pre5.cs" />
     <Compile Include="Protocol\Packets\Inbound\SetSlot\SetSlotHandler114Pre5.cs" />
+    <Compile Include="Protocol\Packets\Inbound\SpawnMob\SpawnMobHandler.cs" />
     <Compile Include="Protocol\Packets\Inbound\UpdateHealth\UpdateHealthHandler114Pre5.cs" />
     <Compile Include="Protocol\Packets\Inbound\WindowItems\WindowItemsHandler114Pre5.cs" />
     <Compile Include="Protocol\Packets\NbtNoop.cs" />
@@ -162,6 +171,7 @@
     <Compile Include="Protocol\Packets\Outbound\PlayerPosition\PlayerPositionOut19.cs" />
     <Compile Include="Protocol\Packets\Outbound\PlayerPosition\PlayerPositionRequest.cs" />
     <Compile Include="Protocol\Packets\Outbound\PluginMessage\PluginMessageOut18.cs" />
+    <Compile Include="Protocol\Packets\Outbound\UseEntity\UseEntityOut.cs" />
     <Compile Include="Protocol\Packets\Outbound\UseItem\UseItemOut114Pre5.cs" />
     <Compile Include="Protocol\ProtocolVersions.cs" />
     <Compile Include="Protocol\VersionsFactory.cs" />
@@ -324,13 +334,17 @@
     <Compile Include="Protocol\WorldProcessors\DataConverters\Location\LocationConverter18.cs" />
     <Compile Include="Protocol\WorldProcessors\IWorldProcessor.cs" />
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\IItem.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\IMob.cs" />
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\Item.cs" />
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\ItemAttributes.cs" />
-    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\MC114Pre5\Item.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\MC114Pre5\Item114Pre5.cs" />
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\MC114Pre5\RegistryEntriesList.cs" />
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\MC114Pre5\RegistryEntry.cs" />
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\MC114Pre5\RegistryProcessor114Pre5.cs" />
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\IRegistryProcessor.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\Mob.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\MobEntry.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\MobTypes.cs" />
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\RegistryProcessor.cs" />
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\RegistryProcessorDummy.cs" />
     <Compile Include="WinAPI\ConsoleIcon.cs" />
