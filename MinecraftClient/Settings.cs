@@ -17,7 +17,7 @@ namespace MinecraftClient
     public static class Settings
     {
         //Minecraft Console Client client information used for BrandInfo setting
-        private const string MCCBrandInfo = "Minecraft-Console-Client/" + Program.Version;
+        private static readonly string MCCBrandInfo = "Minecraft-Console-Client/" + Program.Version;
 
         //Main Settings.
         //Login: Username or email adress used as login for Minecraft/Mojang account
@@ -624,6 +624,14 @@ namespace MinecraftClient
                 + "enabled=false\r\n"
                 + "delay=600 #10 = 1s\r\n"
                 + "command=/ping\r\n"
+                + "\r\n"
+                + "[AntiHunger]\r\n"
+                + "enabled=false\r\n"
+                + "watch_health=true\r\n" 
+                + "threshold=19\r\n"
+                + "\r\n"
+                + "[MobFarm]\r\n"
+                + "enabled=false\r\n"
                 + "\r\n"
                 + "[AutoRelog]\r\n"
                 + "enabled=false\r\n"

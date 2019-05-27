@@ -117,7 +117,7 @@ namespace MinecraftClient.Protocol
             int[] supportedVersions_Protocol18 =
             {
                 4, 5, 47, 107, 108, 109, 110, 210, 315, 316, 335, 338, 340, 393, 401, 404,
-                (int) ProtocolVersions.MC114Pre5
+                (int) ProtocolVersions.MC114Pre5, (int) ProtocolVersions.MC1142Pre4
             };
             if (Array.IndexOf(supportedVersions_Protocol18, ProtocolVersion) > -1)
                 return new Protocol18Handler(Client, ProtocolVersion, Handler, forgeInfo);
