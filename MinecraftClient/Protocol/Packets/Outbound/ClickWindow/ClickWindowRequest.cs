@@ -7,5 +7,7 @@ namespace MinecraftClient.Protocol.Packets.Outbound.ClickWindow
         public byte WindowId { get; set; }
         public short SlotNum { get; set; }
         public ItemSlot Item { get; set; }
+
+        public bool ShiftPressed { get; set; }
     }
 }

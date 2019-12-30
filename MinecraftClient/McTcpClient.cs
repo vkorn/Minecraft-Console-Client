@@ -215,6 +215,12 @@ namespace MinecraftClient
                         BotLoad(new MobFarm());
                     }
 
+                    if (Settings.Craft_Enabled)
+                    {
+                        BotLoad(new Craft(Settings.Craft_From, Settings.Craft_To, 
+                            Settings.Craft_Table, Settings.Craft_Recipe));
+                    }
+
                     //Add your ChatBot here by uncommenting and adapting
                     //BotLoad(new ChatBots.YourBot());
                 }

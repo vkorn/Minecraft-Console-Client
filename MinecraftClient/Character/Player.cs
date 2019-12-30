@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using MinecraftClient.Character.Containers;
 using MinecraftClient.Mapping;
 using MinecraftClient.Protocol;
 using MinecraftClient.Protocol.Packets;
@@ -10,6 +11,7 @@ using MinecraftClient.Protocol.Packets.Outbound.ClickWindow;
 using MinecraftClient.Protocol.Packets.Outbound.HeldItemChange;
 using MinecraftClient.Protocol.Packets.Outbound.PlayerBlockPlacement;
 using MinecraftClient.Protocol.Packets.Outbound.UseEntity;
+using MinecraftClient.Protocol.WorldProcessors.Recipes;
 using MinecraftClient.Protocol.WorldProcessors.RegistryProcessors;
 
 namespace MinecraftClient.Character
@@ -31,12 +33,16 @@ namespace MinecraftClient.Character
 
         public Radar Radar { get; }
 
+        public Crafting Crafting { get; }
+
+        public Container OpenedContainer { get; }
+
+        public Inventory Inventory { get; }
+
         public float Health { get; set; }
+
         public int Food { get; set; }
 
-        public short ActiveSlot { get; set; }
-
-        public Dictionary<short, ItemSlot> Inventory { get; private set; }
 
         internal IRegistryProcessor RegistryProcessor { get; }
 
@@ -44,45 +50,42 @@ namespace MinecraftClient.Character
 
         public Player(int protocolVersion, IMinecraftCom protocol, IMinecraftComHandler handler)
         {
-            Inventory = new Dictionary<short, ItemSlot>();
             RegistryProcessor = VersionsFactory.WorldProcessor<IRegistryProcessor>(protocolVersion);
+
             _protocol = protocol;
             _handler = handler;
 
             Radar = new Radar(protocol, handler);
+
+            Inventory = new Inventory(null, protocol, handler);
+            OpenedContainer = new Container(Inventory, protocol, handler);
+            Crafting = new Crafting(Inventory, protocolVersion, protocol, handler);
 
             ConsoleIO.WriteLineFormatted("Loaded Registries processor:");
             ConsoleIO.WriteLine($"Version: {RegistryProcessor.MinVersion()}    " +
                                 $"Implementation: {RegistryProcessor.GetType().Name}");
         }
 
-        private delegate bool SelectorDelegate(short slot);
 
-        private Dictionary<short, ItemSlot> Selector(SelectorDelegate selector)
+        public void SetWindowItems(byte windowId, Dictionary<short, ItemSlot> inv)
         {
-            return Inventory.Where(x => x.Value != null && selector(x.Key))
-                .OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+            if (0 == windowId)
+            {
+                Inventory.SetInventory(windowId, inv);
+                IsLoaded = true;
+
+                return;
+            }
+
+            OpenedContainer.SetInventory(windowId, inv);
+            Crafting.SetInventory(windowId, inv);
         }
 
-        public Dictionary<short, ItemSlot> QuickBar()
+        public void SetSlot(byte windowId, short slotId, ItemSlot item)
         {
-            return Selector(x => x >= 36);
-        }
-
-        public Dictionary<short, ItemSlot> InventoryOnly()
-        {
-            return Selector(x => x >= 9 && x < 36);
-        }
-
-        public Dictionary<short, ItemSlot> Equip()
-        {
-            return Selector(x => x >= 5 && x <= 8 || x == 45);
-        }
-
-        public void SetInventory(Dictionary<short, ItemSlot> inv)
-        {
-            Inventory = inv;
-            IsLoaded = true;
+            Inventory.SetSlot(windowId, slotId, item);
+            OpenedContainer.SetSlot(windowId, slotId, item);
+            Crafting.SetSlot(windowId, slotId, item);
         }
 
         internal void Stop()
@@ -90,92 +93,9 @@ namespace MinecraftClient.Character
             IsLoaded = false;
         }
 
-        public void PickActiveItem(short quickBarNumber)
-        {
-            if (quickBarNumber < 1 || quickBarNumber > 9)
-            {
-                quickBarNumber = 1;
-            }
-
-            _protocol.SendPacketOut(OutboundTypes.HeldItemChange, null,
-                new HeldItemChangeRequest {SlotNum = quickBarNumber});
-            ActiveSlot = quickBarNumber;
-        }
-
         public void UseActiveItem()
         {
             _protocol.SendPacketOut(OutboundTypes.UseItem, null, null);
-        }
-
-        public bool SwapItems(short from, short to)
-        {
-            if (from < 0)
-            {
-                from = 0;
-            }
-
-            if (to < 0)
-            {
-                to = 0;
-            }
-
-            if (from == to)
-            {
-                return true;
-            }
-
-            // TODO: add another windows
-
-            var itemFrom = Inventory[from];
-            var itemTo = Inventory[to];
-
-            if (null == itemFrom && null == itemTo)
-            {
-                return false;
-            }
-
-            Inventory[to] = itemFrom;
-            Inventory[from] = itemTo;
-
-            if (null == itemFrom)
-            {
-                var tmp = to;
-                to = from;
-                from = tmp;
-
-                itemFrom = itemTo;
-                itemTo = null;
-            }
-
-            _protocol.SendPacketOut(OutboundTypes.ClickWindow, null, new ClickWindowRequest
-            {
-                Item = itemFrom,
-                SlotNum = from,
-                WindowId = 0, // Inventory
-            });
-
-            Thread.Sleep(100);
-            _protocol.SendPacketOut(OutboundTypes.ClickWindow, null, new ClickWindowRequest
-            {
-                Item = itemTo,
-                SlotNum = to,
-                WindowId = 0, // Inventory
-            });
-
-            if (null == itemTo)
-            {
-                return true;
-            }
-
-            Thread.Sleep(100);
-            _protocol.SendPacketOut(OutboundTypes.ClickWindow, null, new ClickWindowRequest
-            {
-                Item = null,
-                SlotNum = from,
-                WindowId = 0, // Inventory
-            });
-
-            return true;
         }
 
         public void LookAt(Location loc)
@@ -191,7 +111,7 @@ namespace MinecraftClient.Character
             }
 
             var block = _handler.GetWorld().GetBlock(loc);
-            if (block.IsEmpty() && !HasItem(ref hand))
+            if (block.IsEmpty() && !Inventory.HasItem(ref hand))
             {
                 ConsoleIO.WriteLineFormatted($"Can't place block at {loc.X}:{loc.Y}:{loc.Z} : empty handed");
                 return false;
@@ -214,47 +134,6 @@ namespace MinecraftClient.Character
                     FaceVector = faceVector,
                     IsInsideBlock = false,
                 });
-        }
-
-        private bool HasItem(ref Hands hand)
-        {
-            switch (hand)
-            {
-                case Hands.Main:
-                    return HasMainHandItem();
-                case Hands.Offhand:
-                    return HasOffHandItem();
-                case Hands.Auto:
-                {
-                    if (HasMainHandItem())
-                    {
-                        hand = Hands.Main;
-                        return true;
-                    }
-
-                    if (HasOffHandItem())
-                    {
-                        hand = Hands.Offhand;
-                        return true;
-                    }
-
-                    return false;
-                }
-            }
-
-            return false;
-        }
-
-        private bool HasMainHandItem()
-        {
-            var itm = Inventory[(short) (InventoryConstants.QuickBarMin + ActiveSlot - 1)];
-            return itm != null && itm.Item.CanPlace();
-        }
-
-        private bool HasOffHandItem()
-        {
-            var itm = Inventory[(short) InventoryConstants.OffHand];
-            return itm != null && itm.Item.CanPlace();
         }
 
         public bool Attack(IMob mob)
@@ -291,6 +170,37 @@ namespace MinecraftClient.Character
 
 
             return Attack(mob);
+        }
+
+        public void WindowOpened(byte windowId, WindowType type)
+        {
+            if (0 == windowId) // Inventory
+            {
+                return;
+            }
+
+            switch (type)
+            {
+                case WindowType.Crafting:
+                    Crafting.WindowOpened(windowId, type);
+                    break;
+                case WindowType.Generic_9x3:
+                case WindowType.Generic_9x6:
+                case WindowType.Shulker_Box:
+                    OpenedContainer.WindowOpened(windowId, type);
+                    break;
+            }
+        }
+
+        public void WindowClosed(byte windowId)
+        {
+            if (0 == windowId) // Inventory
+            {
+                return;
+            }
+
+            Crafting.WindowClosed(windowId);
+            OpenedContainer?.WindowClosed(windowId);
         }
     }
 }

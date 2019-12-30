@@ -22,5 +22,8 @@ namespace MinecraftClient.Protocol
         MC113 = 393,
         MC114Pre5 = 476,
         MC1142Pre4 = 484,
+        MC1142 = 485,
+        MC1143 = 490,
+        MC1144 = 498,
     }
 }

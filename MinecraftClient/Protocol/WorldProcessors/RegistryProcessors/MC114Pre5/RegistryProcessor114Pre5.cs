@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using DotNet.Globbing;
 using MinecraftClient.Mapping;
@@ -12,6 +13,7 @@ namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors.MC114Pre5
     {
         protected Dictionary<int, Item> _items;
         protected Dictionary<int, MobEntry> _entities;
+        protected Dictionary<WindowType, byte> _windows;
 
         protected override ProtocolVersions MinVersion => ProtocolVersions.MC114Pre5;
         protected override string ResourceName => "registries.json.zip";
@@ -31,6 +33,21 @@ namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors.MC114Pre5
             return new Mob(entity, id, uuid, position);
         }
 
+        public override byte GetWindowTypeID(WindowType type)
+        {
+            if (!_windows.TryGetValue(type, out var id))
+            {
+                return 0;
+            }
+
+            return id;
+        }
+
+        public override WindowType GetWindowType(byte windowTypeId)
+        {
+            return _windows.FirstOrDefault(x => x.Value == windowTypeId).Key;
+        }
+
         protected override void ProcessData(MemoryStream ms)
         {
             var res = JsonConvert.DeserializeObject<Dictionary<string, RegistryEntriesList>>(
@@ -38,6 +55,33 @@ namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors.MC114Pre5
 
             ProcessItems(res);
             ProcessEntities(res);
+            ProcessWindows(res);
+        }
+
+        protected virtual void ProcessWindows(Dictionary<string, RegistryEntriesList> entries)
+        {
+            _windows = new Dictionary<WindowType, byte>();
+
+            if (!entries.TryGetValue("minecraft:menu", out var menus))
+            {
+                return;
+            }
+
+            foreach (var menu in menus.Entries)
+            {
+                var name = menu.Key.Substring("minecraft:".Length);
+                if (!Enum.TryParse(name, true, out WindowType type))
+                {
+                    continue;
+                }
+
+                if (_windows.ContainsKey(type))
+                {
+                    continue;
+                }
+
+                _windows.Add(type, (byte) menu.Value.Id);
+            }
         }
 
         protected virtual void ProcessEntities(Dictionary<string, RegistryEntriesList> entries)

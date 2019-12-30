@@ -64,7 +64,7 @@ namespace MinecraftClient.ChatBots
                     ItemSlot foundFood = null;
                     short slot = 0;
 
-                    foreach (var itemSlot in GetPlayer().Inventory.Where(x => null != x.Value))
+                    foreach (var itemSlot in GetPlayer().Inventory.Inventory.Where(x => null != x.Value))
                     {
                         if (itemSlot.Value.Item.IsConsumable() && !itemSlot.Value.Item.CanHarm())
                         {
@@ -82,8 +82,8 @@ namespace MinecraftClient.ChatBots
                     }
 
                     ConsoleIO.WriteLineFormatted($"Eating {foundFood.Item.Name()}");
-                    _prevActive = GetPlayer().ActiveSlot;
-                    GetPlayer().SwapItems(slot, 44);
+                    _prevActive = GetPlayer().Inventory.ActiveSlot;
+                    GetPlayer().Inventory.SwapItems(slot, 44);
 
                     _state = Fsm.Pick;
                     _lastStep = now;
@@ -91,7 +91,7 @@ namespace MinecraftClient.ChatBots
                     break;
                 case Fsm.Pick:
                 {
-                    GetPlayer().PickActiveItem(9);
+                    GetPlayer().Inventory.PickActiveItem(9);
                     _state = Fsm.Eat;
                     _lastStep = now;
                 }
@@ -105,7 +105,7 @@ namespace MinecraftClient.ChatBots
                     break;
                 case Fsm.UnPick:
                 {
-                    GetPlayer().PickActiveItem(_prevActive);
+                    GetPlayer().Inventory.PickActiveItem(_prevActive);
                     _lastMeal = DateTime.Now.Ticks;
                     _state = Fsm.No;
                 }

@@ -4,8 +4,10 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Text.RegularExpressions;
+using MinecraftClient.Mapping;
 using MinecraftClient.Protocol.Session;
 using MinecraftClient.Protocol;
+using MinecraftClient.Protocol.WorldProcessors.DataConverters.Location;
 
 namespace MinecraftClient
 {
@@ -105,7 +107,15 @@ namespace MinecraftClient
         public static bool AntiHunger_WatchHealth = true;
         public static int AntiHunger_Threshold = 10;
 
+        // MobFarm
         public static bool MobFarm_Enabled = false;
+        
+        // Craft
+        public static bool Craft_Enabled = false;
+        public static Location Craft_From = new Location(0,0, 0);
+        public static Location Craft_To = new Location(0,0, 0);
+        public static Location Craft_Table = new Location(0, 0, 0);
+        public static string Craft_Recipe = "";
 
         //Hangman Settings
         public static bool Hangman_Enabled = false;
@@ -161,7 +171,7 @@ namespace MinecraftClient
         private static readonly Dictionary<string, KeyValuePair<string, ushort>> Servers = new Dictionary<string, KeyValuePair<string, ushort>>();
 
         private enum ParseMode { Default, Main, AppVars, Proxy, MCSettings, AntiAFK, Hangman, Alerts,
-            ChatLog, AutoRelog, ScriptScheduler, RemoteControl, ChatFormat, AutoRespond, AntiHunger, MobFarm };
+            ChatLog, AutoRelog, ScriptScheduler, RemoteControl, ChatFormat, AutoRespond, AntiHunger, MobFarm, CraftMode };
 
         /// <summary>
         /// Load settings from the give INI file
@@ -202,8 +212,8 @@ namespace MinecraftClient
                                     case "autorespond": pMode = ParseMode.AutoRespond; break;
                                     case "chatformat": pMode = ParseMode.ChatFormat; break;
                                     case "antihunger": pMode = ParseMode.AntiHunger;break;
-                                    case "mobfarm": pMode = ParseMode.MobFarm;
-                                        break;
+                                    case "mobfarm": pMode = ParseMode.MobFarm;break;
+                                    case "craft": pMode = ParseMode.CraftMode; break;
                                     default: pMode = ParseMode.Default; break;
                                 }
                             }
@@ -473,6 +483,24 @@ namespace MinecraftClient
                                             }
                                         }
                                             break;
+                                        case ParseMode.CraftMode:
+                                        {
+                                            switch (argName.ToLower())
+                                            {
+                                                case "enabled": Craft_Enabled = str2bool(argValue);
+                                                    break;
+                                                case "from": Craft_From = Location.FromString(argValue);
+                                                    break;
+                                                case "to": Craft_To = Location.FromString(argValue);
+                                                    break;
+                                                case "table": Craft_Table = Location.FromString(argValue);
+                                                    break;
+                                                case "recipe": Craft_Recipe = argValue;
+                                                    break;
+                                            }
+                                            
+                                        }
+                                            break;
                                         case ParseMode.MCSettings:
                                             switch (argName.ToLower())
                                             {
@@ -632,6 +660,13 @@ namespace MinecraftClient
                 + "\r\n"
                 + "[MobFarm]\r\n"
                 + "enabled=false\r\n"
+                + "\r\n"
+                + "[Craft]\r\n"
+                + "enabled=false\r\n"
+                + "from=1,2,3\r\n"
+                + "to=1,2,3\r\n"
+                + "table=1,2,3\r\n"
+                + "recipe=minecraft:slime_block\r\n"
                 + "\r\n"
                 + "[AutoRelog]\r\n"
                 + "enabled=false\r\n"

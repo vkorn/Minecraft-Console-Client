@@ -15,5 +15,7 @@ namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors
         void SetNbt(byte[] nbt);
 
         byte[] Nbt();
+
+        bool SameId(string blockId);
     }
 }

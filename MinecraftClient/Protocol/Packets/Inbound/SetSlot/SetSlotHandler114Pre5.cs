@@ -12,18 +12,23 @@ namespace MinecraftClient.Protocol.Packets.Inbound.SetSlot
 
         public override IInboundData Handle(IProtocol protocol, IMinecraftComHandler handler, List<byte> packetData)
         {
-            PacketUtils.readNextByte(packetData); // Always inventory
+            var windowId = PacketUtils.readNextByte(packetData);
             var slotId = PacketUtils.readNextShort(packetData);
+            if (-1 == slotId && -1 == windowId)
+            {
+                return null;
+            }
+
             var isPresent = PacketUtils.readNextBool(packetData);
             if (!isPresent)
             {
-                handler.GetPlayer().Inventory[slotId] = null;
+                handler.GetPlayer().SetSlot(windowId, slotId, null);
                 return null;
             }
 
             var itemId = PacketUtils.readNextVarInt(packetData);
             var itemsCount = PacketUtils.readNextByte(packetData);
-            handler.GetPlayer().Inventory[slotId] = new ItemSlot
+            var item = new ItemSlot
             {
                 Item = handler.GetPlayer().RegistryProcessor.GetItem(itemId),
                 Count = itemsCount
@@ -31,8 +36,8 @@ namespace MinecraftClient.Protocol.Packets.Inbound.SetSlot
 
             var noop = new NbtNoop(packetData);
             noop.SkipTag();
-            handler.GetPlayer().Inventory[slotId].Item.SetNbt(noop.SkippedData.ToArray());
-
+            item.Item.SetNbt(noop.SkippedData.ToArray());
+            handler.GetPlayer().SetSlot(windowId, slotId, item);
             return null;
         }
     }

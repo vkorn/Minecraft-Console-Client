@@ -25,7 +25,7 @@ namespace MinecraftClient.Commands
             {
                 var i1 = Convert.ToInt16(args[0]);
                 var i2 = Convert.ToInt16(args[1]);
-                return handler.GetPlayer().SwapItems(i1, i2) ? "Success" : "Failure";
+                return handler.GetPlayer().Inventory.SwapItems(i1, i2) ? "Success" : "Failure";
             }
             catch (Exception ex)
             {

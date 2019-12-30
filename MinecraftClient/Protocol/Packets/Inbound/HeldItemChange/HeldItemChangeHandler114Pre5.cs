@@ -12,7 +12,7 @@ namespace MinecraftClient.Protocol.Packets.Inbound.HeldItemChange
         public override IInboundData Handle(IProtocol protocol, IMinecraftComHandler handler, List<byte> packetData)
         {
             var id = PacketUtils.readNextByte(packetData);
-            handler.GetPlayer().ActiveSlot = (short) (id + 1);
+            handler.GetPlayer().Inventory.ActiveSlot = (short) (id + 1);
             return null;
         }
     }

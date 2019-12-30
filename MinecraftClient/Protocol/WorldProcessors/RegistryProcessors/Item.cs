@@ -1,3 +1,5 @@
+using System;
+
 namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors
 {
     internal abstract class Item : IItem
@@ -25,6 +27,22 @@ namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors
         byte[] IItem.Nbt()
         {
             return Nbt;
+        }
+
+        public bool SameId(string blockId)
+        {
+            return 0 == string.Compare(GetMCName(blockId), GetMCName(Name),
+                       StringComparison.InvariantCultureIgnoreCase);
+        }
+
+        private string GetMCName(string name)
+        {
+            if (name.StartsWith("minecraft:"))
+            {
+                return name;
+            }
+
+            return "minecraft:" + name;
         }
 
         public abstract bool IsConsumable();

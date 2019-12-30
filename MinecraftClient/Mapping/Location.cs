@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 
 namespace MinecraftClient.Mapping
-{   
+{
     /// <summary>
     /// Represents a location into a Minecraft world
     /// </summary>
@@ -14,7 +14,7 @@ namespace MinecraftClient.Mapping
         /// The X Coordinate
         /// </summary>
         public double X;
-        
+
         /// <summary>
         /// The Y Coordinate (vertical)
         /// </summary>
@@ -30,10 +30,7 @@ namespace MinecraftClient.Mapping
         /// </summary>
         public static Location Zero
         {
-            get
-            {
-                return new Location(0, 0, 0);
-            }
+            get { return new Location(0, 0, 0); }
         }
 
         /// <summary>
@@ -66,10 +63,7 @@ namespace MinecraftClient.Mapping
         /// </summary>
         public int ChunkX
         {
-            get
-            {
-                return (int)Math.Floor(X / Chunk.SizeX);
-            }
+            get { return (int) Math.Floor(X / Chunk.SizeX); }
         }
 
         /// <summary>
@@ -77,10 +71,7 @@ namespace MinecraftClient.Mapping
         /// </summary>
         public int ChunkY
         {
-            get
-            {
-                return (int)Math.Floor(Y / Chunk.SizeY);
-            }
+            get { return (int) Math.Floor(Y / Chunk.SizeY); }
         }
 
         /// <summary>
@@ -88,10 +79,7 @@ namespace MinecraftClient.Mapping
         /// </summary>
         public int ChunkZ
         {
-            get
-            {
-                return (int)Math.Floor(Z / Chunk.SizeZ);
-            }
+            get { return (int) Math.Floor(Z / Chunk.SizeZ); }
         }
 
         /// <summary>
@@ -99,10 +87,7 @@ namespace MinecraftClient.Mapping
         /// </summary>
         public int ChunkBlockX
         {
-            get
-            {
-                return ((int)Math.Floor(X) % Chunk.SizeX + Chunk.SizeX) % Chunk.SizeX;
-            }
+            get { return ((int) Math.Floor(X) % Chunk.SizeX + Chunk.SizeX) % Chunk.SizeX; }
         }
 
         /// <summary>
@@ -110,10 +95,7 @@ namespace MinecraftClient.Mapping
         /// </summary>
         public int ChunkBlockY
         {
-            get
-            {
-                return ((int)Math.Floor(Y) % Chunk.SizeY + Chunk.SizeY) % Chunk.SizeY;
-            }
+            get { return ((int) Math.Floor(Y) % Chunk.SizeY + Chunk.SizeY) % Chunk.SizeY; }
         }
 
         /// <summary>
@@ -121,10 +103,7 @@ namespace MinecraftClient.Mapping
         /// </summary>
         public int ChunkBlockZ
         {
-            get
-            {
-                return ((int)Math.Floor(Z) % Chunk.SizeZ + Chunk.SizeZ) % Chunk.SizeZ;
-            }
+            get { return ((int) Math.Floor(Z) % Chunk.SizeZ + Chunk.SizeZ) % Chunk.SizeZ; }
         }
 
         /// <summary>
@@ -135,8 +114,8 @@ namespace MinecraftClient.Mapping
         public double DistanceSquared(Location location)
         {
             return ((X - location.X) * (X - location.X))
-                 + ((Y - location.Y) * (Y - location.Y))
-                 + ((Z - location.Z) * (Z - location.Z));
+                   + ((Y - location.Y) * (Y - location.Y))
+                   + ((Z - location.Z) * (Z - location.Z));
         }
 
         /// <summary>
@@ -160,10 +139,11 @@ namespace MinecraftClient.Mapping
                 return false;
             if (obj is Location)
             {
-                return ((int)this.X) == ((int)((Location)obj).X)
-                    && ((int)this.Y) == ((int)((Location)obj).Y)
-                    && ((int)this.Z) == ((int)((Location)obj).Z);
+                return ((int) this.X) == ((int) ((Location) obj).X)
+                       && ((int) this.Y) == ((int) ((Location) obj).Y)
+                       && ((int) this.Z) == ((int) ((Location) obj).Z);
             }
+
             return false;
         }
 
@@ -279,9 +259,9 @@ namespace MinecraftClient.Mapping
         /// <returns>A simplified version of the location</returns>
         public override int GetHashCode()
         {
-            return (((int)X) & ~((~0) << 13)) << 19
-                 | (((int)Y) & ~((~0) << 13)) << 13
-                 | (((int)Z) & ~((~0) << 06)) << 00;
+            return (((int) X) & ~((~0) << 13)) << 19
+                   | (((int) Y) & ~((~0) << 13)) << 13
+                   | (((int) Z) & ~((~0) << 06)) << 00;
         }
 
         /// <summary>
@@ -291,6 +271,18 @@ namespace MinecraftClient.Mapping
         public override string ToString()
         {
             return String.Format("X:{0:.00} Y:{1:.00} Z:{2:.00}", X, Y, Z);
+        }
+
+        public static Location FromString(string location)
+        {
+            var loc = new Location();
+
+            var parts = location.Split(new[] {',', ' '});
+            loc.X = Convert.ToDouble(parts[0]);
+            loc.Y = Convert.ToDouble(parts[1]);
+            loc.Z = Convert.ToDouble(parts[2]);
+
+            return loc;
         }
     }
 }

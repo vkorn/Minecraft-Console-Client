@@ -84,9 +84,16 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="unmined-cli, Version=0.12.6.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\..\unmined-cli_0.12.6-dev_netcore22-macos\unmined-cli.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AutoTimeout.cs" />
+    <Compile Include="Character\Containers\BaseContainer.cs" />
+    <Compile Include="Character\Containers\Container.cs" />
+    <Compile Include="Character\Containers\Crafting.cs" />
+    <Compile Include="Character\Containers\Inventory.cs" />
     <Compile Include="Character\Radar.cs" />
     <Compile Include="ChatBots\Alerts.cs" />
     <Compile Include="ChatBots\AntiAFK.cs" />
@@ -94,6 +101,7 @@
     <Compile Include="ChatBots\AutoRespond.cs" />
     <Compile Include="ChatBots\AutoRelog.cs" />
     <Compile Include="ChatBots\ChatLog.cs" />
+    <Compile Include="ChatBots\Craft.cs" />
     <Compile Include="ChatBots\HangmanGame.cs" />
     <Compile Include="ChatBots\MobFarm.cs" />
     <Compile Include="ChatBots\PlayerListLogger.cs" />
@@ -127,13 +135,17 @@
     <Compile Include="Character\Player.cs" />
     <Compile Include="Protocol\Packets\BlockFaces.cs" />
     <Compile Include="Protocol\Packets\Hands.cs" />
+    <Compile Include="Protocol\Packets\Inbound\CloseWindow\CloseWindowHandler1144.cs" />
     <Compile Include="Protocol\Packets\Inbound\ConfirmTransaction\ConfirmTransactionHandler114Pre5.cs" />
+    <Compile Include="Protocol\Packets\Inbound\CraftRecipe\CraftRecipeHandler1144.cs" />
+    <Compile Include="Protocol\Packets\Inbound\DeclareRecipes\DeclareRecipesHandler1144.cs" />
     <Compile Include="Protocol\Packets\Inbound\EntityLookAndRelativeMove\EntityLookAndRelativeMoveHandler.cs" />
     <Compile Include="Protocol\Packets\Inbound\EntityRelativeMove\EntityRelativeMoveHandler.cs" />
     <Compile Include="Protocol\Packets\Inbound\EntityStatus\EntityStatusHandler.cs" />
     <Compile Include="Protocol\Packets\Inbound\EntityTeleport\EntityTeleportHandler.cs" />
     <Compile Include="Protocol\Packets\Inbound\HeldItemChange\HeldItemChangeHandler114Pre5.cs" />
     <Compile Include="Protocol\Packets\Inbound\MultiBlockChange\MultiBlockChangeHandler114Pre5.cs" />
+    <Compile Include="Protocol\Packets\Inbound\OpenWindow\OpenWindowHandler1144.cs" />
     <Compile Include="Protocol\Packets\Inbound\SetSlot\SetSlotHandler114Pre5.cs" />
     <Compile Include="Protocol\Packets\Inbound\SpawnMob\SpawnMobHandler.cs" />
     <Compile Include="Protocol\Packets\Inbound\UpdateHealth\UpdateHealthHandler114Pre5.cs" />
@@ -141,7 +153,11 @@
     <Compile Include="Protocol\Packets\NbtNoop.cs" />
     <Compile Include="Protocol\Packets\Outbound\ClickWindow\ClickWindowOut114Pre5.cs" />
     <Compile Include="Protocol\Packets\Outbound\ClickWindow\ClickWindowRequest.cs" />
+    <Compile Include="Protocol\Packets\Outbound\CloseWindow\CloseWindowOut1144.cs" />
+    <Compile Include="Protocol\Packets\Outbound\CloseWindow\CloseWindowRequest.cs" />
     <Compile Include="Protocol\Packets\Outbound\ConfirmTransaction\ConfirmTransactionOut114Pre5.cs" />
+    <Compile Include="Protocol\Packets\Outbound\CraftRecipe\CraftRecipeOut1144.cs" />
+    <Compile Include="Protocol\Packets\Outbound\CraftRecipe\CraftRecipeRequest.cs" />
     <Compile Include="Protocol\Packets\Outbound\HeldItemChange\HeldItemChangeOut114Pre5.cs" />
     <Compile Include="Protocol\Packets\Outbound\HeldItemChange\HeldItemChangeRequest.cs" />
     <Compile Include="Protocol\Packets\Outbound\PlayerBlockPlacement\PlayerBlockPlacementOut114Pre5.cs" />
@@ -333,6 +349,16 @@
     <Compile Include="Protocol\WorldProcessors\DataConverters\Location\LocationConverter114Pre5.cs" />
     <Compile Include="Protocol\WorldProcessors\DataConverters\Location\LocationConverter18.cs" />
     <Compile Include="Protocol\WorldProcessors\IWorldProcessor.cs" />
+    <Compile Include="Protocol\WorldProcessors\Recipes\CraftingRecipe.cs" />
+    <Compile Include="Protocol\WorldProcessors\Recipes\IRecipeParser.cs" />
+    <Compile Include="Protocol\WorldProcessors\Recipes\IRecipeProcessorFactory.cs" />
+    <Compile Include="Protocol\WorldProcessors\Recipes\MC1144\Cutting1144.cs" />
+    <Compile Include="Protocol\WorldProcessors\Recipes\MC1144\RecipeProcessorFactory1144.cs" />
+    <Compile Include="Protocol\WorldProcessors\Recipes\MC1144\Shaped1144.cs" />
+    <Compile Include="Protocol\WorldProcessors\Recipes\MC1144\Shapeless1144.cs" />
+    <Compile Include="Protocol\WorldProcessors\Recipes\MC1144\Smelting1144.cs" />
+    <Compile Include="Protocol\WorldProcessors\Recipes\RecipeParser.cs" />
+    <Compile Include="Protocol\WorldProcessors\Recipes\RecipeProcessorFactory.cs" />
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\IItem.cs" />
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\IMob.cs" />
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\Item.cs" />
@@ -347,6 +373,7 @@
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\MobTypes.cs" />
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\RegistryProcessor.cs" />
     <Compile Include="Protocol\WorldProcessors\RegistryProcessors\RegistryProcessorDummy.cs" />
+    <Compile Include="Protocol\WorldProcessors\RegistryProcessors\WindowType.cs" />
     <Compile Include="WinAPI\ConsoleIcon.cs" />
     <Compile Include="ConsoleIO.cs" />
     <Compile Include="Crypto\Streams\BouncyAes\AesFastEngine.cs" />
@@ -455,8 +482,6 @@
     <Compile Include="Protocol\Handlers\Protocol18.cs" />
     <Compile Include="Protocol\Handlers\Protocol16.cs" />
     <Compile Include="Protocol\Handlers\PacketUtils.cs" />
-    <Compile Include="Protocol\Handlers\Protocol18ClientboundPackets.cs" />
-    <Compile Include="Protocol\Handlers\Protocol18ServerboundPackets.cs" />
     <Compile Include="Protocol\IMinecraftCom.cs" />
     <Compile Include="Protocol\IMinecraftComHandler.cs" />
     <Compile Include="Protocol\ProtocolHandler.cs" />

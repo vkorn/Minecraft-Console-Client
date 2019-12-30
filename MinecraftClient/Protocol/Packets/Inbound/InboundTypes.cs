@@ -28,6 +28,10 @@ namespace MinecraftClient.Protocol.Packets.Inbound
         EntityLookAndRelativeMove = 24,
         EntityTeleport = 25,
         EntityStatus = 26,
+        OpenWindow = 27,
+        CloseWindow = 28,
+        DeclareRecipes = 29,
+        CraftRecipeResponse = 30,
         UnknownPacket = 0
     }
 }

@@ -1,0 +1,29 @@
+namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors
+{
+    public enum WindowType
+    {
+        Generic_9x1,
+        Generic_9x2,
+        Generic_9x3,
+        Generic_9x4,
+        Generic_9x5,
+        Generic_9x6,
+        Generic_3x3,
+        Anvil,
+        Beacon,
+        Blast_Furnace,
+        Brewing_Stand,
+        Crafting, 
+        Enchantment,
+        Furnace,
+        Grindstone,
+        Hopper,
+        Lectern,
+        Loom,
+        Merchant,
+        Shulker_Box,
+        Smoker,
+        Cartography,
+        Stonecutter
+    }
+}

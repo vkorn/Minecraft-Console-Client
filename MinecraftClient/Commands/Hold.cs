@@ -31,7 +31,7 @@ namespace MinecraftClient.Commands
                     return "Invalid number: " + CMDDesc;
                 }
 
-                handler.GetPlayer().PickActiveItem(num);
+                handler.GetPlayer().Inventory.PickActiveItem(num);
                 return "Done";
             }
             catch (Exception ex)

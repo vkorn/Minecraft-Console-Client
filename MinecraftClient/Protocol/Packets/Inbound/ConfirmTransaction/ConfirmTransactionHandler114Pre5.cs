@@ -22,7 +22,6 @@ namespace MinecraftClient.Protocol.Packets.Inbound.ConfirmTransaction
                 return null;
             }
 
-            ConsoleIO.WriteLineFormatted("§cServer rejected the transaction");
             protocol.SendPacketOut(OutboundTypes.ConfirmTransaction, cp, null);
             return null;
         }

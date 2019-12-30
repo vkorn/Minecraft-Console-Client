@@ -22,13 +22,13 @@ namespace MinecraftClient.Protocol.Packets.Outbound.ClickWindow
         public override IEnumerable<byte> TransformData(IEnumerable<byte> packetData, IOutboundRequest data)
         {
             // TODO: Do we need all modes? Now only left clicks are supported in order to provide SwapItems functionality
-             
+
             return PacketUtils.concatBytes(
                 new[] {((ClickWindowRequest) data).WindowId},
                 PacketUtils.getShort(((ClickWindowRequest) data).SlotNum),
                 new byte[] {0}, // Left click
                 PacketUtils.getShort(GetNextActionNumber(((ClickWindowRequest) data).WindowId)), // Action number
-                PacketUtils.getVarInt(0), // Default mode
+                ((ClickWindowRequest) data).ShiftPressed ? PacketUtils.getVarInt(1) : PacketUtils.getVarInt(0),
                 // Item data
                 null == ((ClickWindowRequest) data).Item
                     ? PacketUtils.getBool(false)
@@ -38,7 +38,7 @@ namespace MinecraftClient.Protocol.Packets.Outbound.ClickWindow
                         new[] {(byte) ((ClickWindowRequest) data).Item.Count},
                         ((ClickWindowRequest) data).Item.Item.Nbt())
             );
-            
+
             // TODO: some straight up bs happening with custom NBT, packets are identical but server rejects them
         }
 

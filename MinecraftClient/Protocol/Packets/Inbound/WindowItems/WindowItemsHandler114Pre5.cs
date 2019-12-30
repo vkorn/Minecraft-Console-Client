@@ -38,12 +38,7 @@ namespace MinecraftClient.Protocol.Packets.Inbound.WindowItems
                 noop.Reset();
             }
 
-            switch (windowId)
-            {
-                case 0:
-                    handler.GetPlayer().SetInventory(inventory);
-                    break;
-            }
+            handler.GetPlayer().SetWindowItems(windowId, inventory);
 
             return null;
         }

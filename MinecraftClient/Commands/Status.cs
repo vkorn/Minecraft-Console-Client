@@ -19,21 +19,21 @@ namespace MinecraftClient.Commands
             ConsoleIO.WriteLineFormatted($"Food:   {GetColor(player.Food)}{player.Food:00}", true, false);
             
             ConsoleIO.WriteLineFormatted("§6Quick bar:", true, false);
-            foreach (var item in player.QuickBar())
+            foreach (var item in player.Inventory.QuickBar())
             {
                 ConsoleIO.WriteLineFormatted(
-                    $"{(item.Key - 35 == player.ActiveSlot ? "*" : "")}{item.Key - 35} ({item.Key}): x{item.Value.Count:00} {item.Value.Item.Name()}",
+                    $"{(item.Key - 35 == player.Inventory.ActiveSlot ? "*" : "")}{item.Key - 35} ({item.Key}): x{item.Value.Count:00} {item.Value.Item.Name()}",
                     true, false);
             }
             
             ConsoleIO.WriteLineFormatted("§6Inventory:", true, false);
-            foreach (var item in player.InventoryOnly())
+            foreach (var item in player.Inventory.InventoryOnly())
             {
                 ConsoleIO.WriteLineFormatted($"{item.Key}: x{item.Value.Count:00} {item.Value.Item.Name()}", true, false);
             }
             
             ConsoleIO.WriteLineFormatted("§6Equipped:", true, false);
-            foreach (var item in player.Equip())
+            foreach (var item in player.Inventory.Equip())
             {
                 ConsoleIO.WriteLineFormatted($"{item.Key}: x{item.Value.Count:00} {item.Value.Item.Name()}", true, false);
             }

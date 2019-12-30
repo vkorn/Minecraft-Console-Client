@@ -19,6 +19,8 @@ namespace MinecraftClient.Protocol.WorldProcessors.RegistryProcessors
 
         public abstract IItem GetItem(int id);
         public abstract IMob GetEntity(int type, int id, Guid uuid, Location position);
+        public abstract byte GetWindowTypeID(WindowType type);
+        public abstract WindowType GetWindowType(byte windowTypeId);
 
         protected RegistryProcessor()
         {

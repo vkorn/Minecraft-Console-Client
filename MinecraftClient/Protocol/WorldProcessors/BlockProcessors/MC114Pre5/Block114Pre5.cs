@@ -23,7 +23,7 @@ namespace MinecraftClient.Protocol.WorldProcessors.BlockProcessors.MC114Pre5
 
         public bool CanUse()
         {
-            return _mat.Material == Material.CanUse;
+            return _mat.Material == Material.CanUse || _mat.Material == Material.HasInterface;
         }
 
         public bool IsSolid()

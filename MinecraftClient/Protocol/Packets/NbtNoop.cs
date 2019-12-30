@@ -37,6 +37,11 @@ namespace MinecraftClient.Protocol.Packets
 
         private void SkipTag(byte tag, bool nameless)
         {
+            if (tag != 0)
+            {
+               
+            }
+            
             switch (tag)
             {
                 case 0: // TAG_End

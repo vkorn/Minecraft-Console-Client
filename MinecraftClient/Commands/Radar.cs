@@ -8,12 +8,15 @@ namespace MinecraftClient.Commands
         public override string Run(McTcpClient handler, string command)
         {
             var me = handler.GetCurrentLocation();
+
             foreach (var mob in handler.GetPlayer().Radar.Mobs)
             {
                 ConsoleIO.WriteLineFormatted(
                     $"{mob.Key} ({mob.Value.Uuid()}): {mob.Value.Name()} at {mob.Value.Position().ToString()} " +
-                    $"({(int)mob.Value.Position().Distance(me)} blocks)", true, false);
+                    $"({(int) mob.Value.Position().Distance(me)} blocks)", true, false);
             }
+
+            ConsoleIO.WriteLineFormatted($"Player is at {me.ToString()}");
 
             return "Done";
         }

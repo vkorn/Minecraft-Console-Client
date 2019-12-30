@@ -23,7 +23,7 @@ namespace MinecraftClient
 
         public static readonly string Version = MCHighestVersion;
         public const string MCLowestVersion = "1.4.6";
-        public static readonly string MCHighestVersion = ProtocolVersions.MC1142Pre4.ToString();
+        public static readonly string MCHighestVersion = ProtocolVersions.MC1144.ToString();
         public static readonly string BuildInfo = null;
 
         private static Thread offlinePrompt = null;

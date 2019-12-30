@@ -18,5 +18,7 @@ namespace MinecraftClient.Protocol.Packets.Outbound
         ClickWindow = 13,
         PlayerBlockPlacement = 14,
         UseEntity = 15,
+        CloseWindow = 16,
+        CraftRecipe = 17,
     }
 }
